@@ -9,11 +9,11 @@ It's a single static page: plain HTML, CSS and JavaScript, no build step and no 
 ## Files
 
 ```
-index.html          the whole site (markup, styles, script)
-assets/face.mp4     looping background video (1600px, ~4 MB, no audio)
-assets/poster.jpg   still frame shown while the video loads
-assets/roses.jpg    rose strip on the left of the scene
-assets/favicon.svg  browser tab icon
+index.html    the whole site (markup, styles, script)
+face.mp4      looping background video (1600px, ~4 MB, no audio)
+poster.jpg    still frame shown while the video loads
+roses.jpg     rose strip on the left of the scene
+favicon.svg   browser tab icon
 ```
 
 ## Run it locally
@@ -49,9 +49,32 @@ To use your own domain (like `00cleared.com`), add it in the host's domain setti
 ## What's still a demo
 
 - **Discord sign-in isn't connected.** The button plays the popup and opens the sample portal. Real sign-in needs a Discord application (OAuth2) plus a small backend or serverless function that checks the member's role and starts a session. The portal should then load from that session instead of opening for everyone.
-- **The curriculum is sample data.** Lessons are defined in the `chapters` array near the bottom of `index.html`. Replace them with your real chapters and link each lesson to its player.
 - **Terms of sale and Privacy policy** link to `#terms` and `#privacy`. Add real pages before you take payments.
 - The small "Demo build" labels on the sign-in card and portal can be removed once the above is real.
+
+## Chapters and Discord roles
+
+The curriculum lives in the `CURRICULUM` array near the bottom of `index.html`:
+
+| Chapter | Lessons | Who can open it |
+|---|---|---|
+| Chapter 1 | OHLC / OLHC, AMD, SMT / POI, Break of Structure | Every member |
+| Chapter 2 | SMT Divergence, Daily Bias, Key Opens | Members with the Chapter 2 role |
+| Chapter 3 | Structural Inducement, Protected Structure | Members with the Chapter 3 role |
+
+To connect it to your server:
+
+1. In Discord, turn on Developer Mode (User Settings → Advanced), then right-click each role in Server Settings → Roles and choose **Copy Role ID**.
+2. In `index.html`, paste those IDs into `ROLES.chapter2` and `ROLES.chapter3`.
+3. Your sign-in backend (Discord OAuth2 with the `guilds.members.read` scope) reads the member's roles for your server and puts them on the page before the main script runs:
+
+   ```html
+   <script>window.CLEARED_SESSION = { roles: ["123456789012345678", "234567890123456789"] };</script>
+   ```
+
+   When `CLEARED_SESSION` is present, the portal unlocks chapters from those roles and hides the demo Access switches. When it's absent, the page runs in demo mode and the **Access** switches at the bottom of the portal stand in for the roles.
+
+Locking on the page only controls what members see. Serve the lesson videos through your backend (signed or expiring links checked against the same roles) so a locked video can't be opened by someone who copies its address.
 
 ## Asset rights
 
