@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>00 Cleared</title>
+<meta name="description" content="00 Cleared mentorship. Members sign in with Discord.">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#03050A">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<style>
+/* base reset (was supplied by the preview host) */
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html,body{margin:0}
+img,video{max-width:100%}
+[hidden]{display:none!important}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Instrument+Sans:wght@400;500;600;700&family=Archivo:ital,wdth,wght@1,125,200;1,125,900&family=Noto+Sans+JP:wght@900&family=Saira:wdth,wght@125,300&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: one full-screen scene. Figure artwork top right dissolving into black,
+   wordmark bottom left, sign-in card bottom right, one laser tying them together. Leaves drift over everything. */
+:root{
+  --bg:#03050A;
+  --ink:#E6EAF2;
+  --muted:#8E98AC;
+  --blue:#4C8DFF;
+  --blue-dim:#1F3F7A;
+  --line:#1A2233;
+  --panel:#060A12;
+  --panel-2:#0E1420;
+  --extrude:#5B6CF0;
+  --kana-c:#9CC8FF;
+  --display:'Archivo','Arial Black',Impact,sans-serif;
+  --serif:'Cormorant Garamond','Times New Roman',serif;
+  --sans:'Instrument Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --jp:'Noto Sans JP','Hiragino Sans',sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,Menlo,monospace;
+  --wide:'Saira','Eurostile','Arial',sans-serif;
+  color-scheme:dark;
+}
+html,body{background:var(--bg);color:var(--ink)}
+body{font-family:var(--sans);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:60;background:var(--bg)}
+canvas.fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none}
+#rays{z-index:0}
+#petals{z-index:3}
+.page{position:relative;z-index:2}
+a{color:var(--blue);text-underline-offset:3px}
+
+/* ---------- wordmark (shared) ---------- */
+.wm{display:flex;align-items:center;gap:.12em;line-height:1;margin:0}
+.wm-t{font-family:var(--display);font-style:italic;font-weight:900;font-stretch:125%;letter-spacing:-.025em;color:#FFFFFF;font-synthesis:none}
+/* hero wordmark: wide italic lowercase like the artwork, silver-white with a soft blue halo */
+.word .wm-t{text-transform:lowercase;background:linear-gradient(180deg,#FFFFFF 0%,#F2F6FF 48%,#B9C9EA 100%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 22px color-mix(in srgb,var(--blue) 45%,transparent)) drop-shadow(0 2px 0 rgba(0,0,0,.35));padding-right:.06em}
+.wm-k{font-family:var(--jp);font-weight:900;font-size:.28em;line-height:1.05;writing-mode:vertical-rl;text-orientation:upright;color:var(--kana-c);align-self:flex-end;margin-bottom:.12em}
+.wm.sm{font-size:28px}
+.wm.sm .wm-t{text-transform:lowercase}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted)}
+
+/* ---------- scene (sign-in) ---------- */
+.scene{position:relative;min-height:100vh;min-height:100svh;overflow:hidden;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0;box-sizing:border-box}
+.scene::before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse 55% 60% at 72% 36%,color-mix(in srgb,var(--blue) 16%,transparent),transparent 70%);pointer-events:none}
+
+/* moving figure: fills the scene, she sits right, black space left holds the word */
+.moon{position:absolute;inset:0;z-index:0;
+  -webkit-mask-image:linear-gradient(to bottom,#000 70%,transparent 100%);mask-image:linear-gradient(to bottom,#000 70%,transparent 100%)}
+.moon video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:70% 35%;display:block;max-width:100%;filter:contrast(1.08) brightness(1.05)}
+/* blue tint over the black-and-white footage, like the still artwork */
+.moon::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:#2F6BFF;mix-blend-mode:color;opacity:.74}
+/* soft blue glow behind her face and shoulders */
+.moon::before{content:"";position:absolute;inset:0;z-index:2;pointer-events:none;
+  background:radial-gradient(ellipse 38% 46% at 62% 52%,color-mix(in srgb,var(--blue) 38%,transparent),transparent 72%);mix-blend-mode:screen}
+.kana-v{position:absolute;top:14vh;left:30vw;z-index:2;font-family:var(--jp);font-weight:900;font-size:clamp(28px,3.4vw,46px);line-height:1.08;writing-mode:vertical-rl;text-orientation:upright;color:var(--kana-c);text-shadow:0 0 24px color-mix(in srgb,var(--blue) 60%,transparent)}
+
+.laser{position:absolute;left:-5%;width:110%;top:var(--ly,74%);height:2px;transform-origin:0 50%;transform:rotate(var(--la,-9deg));z-index:4;pointer-events:none;
+  background:linear-gradient(90deg,transparent,var(--blue) 12%,#BFD8FF 50%,var(--blue) 88%,transparent);box-shadow:0 0 12px 2px var(--blue),0 0 40px 6px color-mix(in srgb,var(--blue) 50%,transparent)}
+.laser::after{content:"";position:absolute;left:0;right:0;top:-40px;height:80px;background:linear-gradient(to bottom,transparent,color-mix(in srgb,var(--blue) 22%,transparent),transparent);filter:blur(8px)}
+
+.word{position:absolute;left:max(24px,4vw);bottom:9vh;z-index:3;display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+.word .wm{font-size:clamp(56px,8.6vw,170px)}
+.word .tag{font-size:14px;letter-spacing:.04em;color:var(--muted);padding-left:.2em;align-self:flex-start;text-align:left}
+.word .wm{gap:.18em}
+/* stacked 00: outlined italic zeros in the wordmark's face, one above the other, as tall as CLEARED */
+.wm-n{display:flex;flex-direction:column;align-items:center;font-family:var(--display);font-style:italic;font-weight:200;font-stretch:125%;font-size:.42em;line-height:.8;
+  color:var(--kana-c);text-shadow:0 0 18px color-mix(in srgb,var(--blue) 60%,transparent);align-self:center;margin-top:.02em}
+.wm-n span:last-child{margin-left:-.14em}
+.word .tag{padding-left:0}
+
+/* rose strip from the artwork, blended into the left side */
+.roses{position:absolute;top:0;left:7vw;height:80vh;aspect-ratio:180/720;z-index:1;pointer-events:none;mix-blend-mode:screen;opacity:.9;
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 12%,#000 62%,transparent 100%);mask-image:linear-gradient(to bottom,transparent 0,#000 12%,#000 62%,transparent 100%)}
+.roses img{width:100%;height:100%;object-fit:cover;display:block;max-width:100%}
+
+.card{position:absolute;right:max(24px,4vw);bottom:8vh;z-index:5;width:min(400px,calc(100% - 32px));box-sizing:border-box;padding:30px 28px 24px;background:var(--panel);border:2px solid var(--ink);box-shadow:14px 14px 0 var(--blue);display:flex;flex-direction:column;gap:16px}
+.card h2{margin:0;font-family:var(--sans);font-weight:700;font-size:30px;letter-spacing:-.01em}
+.card p{margin:0;color:var(--muted)}
+.cta{appearance:none;border:0;cursor:pointer;width:100%;min-height:54px;background:var(--blue);color:#fff;font:700 16px/1 var(--sans);clip-path:polygon(0 0,100% 0,94% 100%,0 100%);transition:background .2s,transform .2s}
+.cta:hover{background:#6FA3FF}
+.cta:active{transform:translateY(1px)}
+.cta:focus-visible,.ghost:focus-visible,.lesson:focus-visible,.x:focus-visible{outline:2px solid var(--kana-c);outline-offset:3px}
+.fine{font-size:13px;color:var(--muted);text-align:center;line-height:1.6}
+.fine a{color:var(--muted)}
+.fine a:hover{color:var(--ink)}
+.demo{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);text-align:center}
+
+/* launch: the page fades up from black, then the wordmark slams onto it */
+.scene::after{content:"";position:absolute;inset:0;z-index:9;background:var(--bg);pointer-events:none;opacity:0}
+.impact{position:absolute;left:-10%;top:-60%;width:120%;height:220%;pointer-events:none;z-index:-1;opacity:0;
+  background:radial-gradient(ellipse 50% 40% at 40% 50%,color-mix(in srgb,var(--blue) 55%,transparent),transparent 70%)}
+@media (prefers-reduced-motion:no-preference){
+  .scene::after{animation:lift 1s ease-out both}
+  .moon{animation:fadeup 1.4s ease-out both}
+  .roses,.kana-v{animation:fadeup 1.4s ease-out .3s both}
+  .word .wm{animation:slam .5s cubic-bezier(.2,1.6,.4,1) 1.1s both}
+  .impact{animation:impact 1.1s ease-out 1.42s both}
+  .word .tag{animation:fadeup .7s ease-out 1.75s both}
+  #gate-view{animation:shake .38s linear 1.5s both}
+  .laser{animation:beam 1s cubic-bezier(.6,0,.2,1) 1.6s both}
+  .card{animation:slide .9s cubic-bezier(.16,1,.3,1) 1.9s both}
+  @keyframes lift{from{opacity:1}to{opacity:0}}
+  @keyframes fadeup{from{opacity:0}}
+  @keyframes slam{0%{opacity:0;transform:scale(3.2) skewX(-10deg);filter:blur(6px)}60%{opacity:1;filter:blur(0)}100%{opacity:1;transform:none}}
+  @keyframes impact{0%{opacity:0}15%{opacity:1}100%{opacity:0}}
+  @keyframes shake{0%,100%{transform:none}20%{transform:translate(-7px,4px)}40%{transform:translate(6px,-3px)}60%{transform:translate(-4px,2px)}80%{transform:translate(2px,-1px)}}
+  @keyframes slide{from{opacity:0;transform:translateY(24px)}}
+  @keyframes beam{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+}
+
+/* phone/tablet: stack the scene */
+@media (max-width:1024px){
+  .scene{min-height:0;padding-block:40px 48px;display:flex;flex-direction:column;align-items:center;gap:32px}
+  .moon,.kana-v,.word,.card,.laser{position:relative;inset:auto;right:auto;left:auto;top:auto;bottom:auto}
+  .moon{width:calc(100% + 32px);max-width:none;margin-inline:-16px;aspect-ratio:4/3;margin-top:-40px}
+  .moon video{object-position:72% 30%}
+  .kana-v{position:absolute;top:44px;left:max(10px,env(safe-area-inset-left,0px));font-size:24px}
+  .laser{display:none}
+  .word .tag{padding-left:0}
+  .roses{top:0;left:max(8px,env(safe-area-inset-left,0px));height:min(70vw,420px);opacity:.75}
+  .word{align-self:stretch;align-items:flex-start;margin-top:-64px}
+  .word .wm{font-size:clamp(48px,14vw,96px)}
+  .card{width:100%;max-width:420px;box-shadow:10px 10px 0 var(--blue)}
+}
+
+
+/* ---------- popup ---------- */
+.scrim{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));background:rgba(2,3,7,.8);backdrop-filter:blur(10px)}
+.modal{position:relative;width:100%;max-width:440px;box-sizing:border-box;background:var(--panel);border:2px solid var(--ink);box-shadow:14px 14px 0 var(--blue);padding:36px 30px 30px;display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;overflow:hidden}
+.ring{position:relative;width:168px;height:168px}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .track{stroke:var(--line)}
+.ring .arc{stroke:var(--blue)}
+.ring .zz{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--display);font-style:italic;font-weight:900;font-stretch:125%;font-size:52px;color:#fff;text-shadow:.055em .055em 0 var(--extrude)}
+.balance{font-family:var(--mono);font-size:34px;font-variant-numeric:tabular-nums}
+.steps{list-style:none;margin:0;padding:0;width:100%;display:flex;flex-direction:column;gap:8px;text-align:left;font-size:14px;color:var(--muted)}
+.steps li{display:flex;align-items:center;gap:10px}
+.steps .dot{width:8px;height:8px;border-radius:50%;border:1px solid var(--muted);flex:none}
+.steps li.done{color:var(--ink)}
+.steps li.done .dot{background:var(--blue);border-color:var(--blue)}
+.stamp{position:absolute;top:44%;left:50%;font-family:var(--display);font-style:italic;font-weight:900;font-stretch:125%;font-size:38px;padding:2px 18px;color:#fff;background:var(--blue);transform:translate(-50%,-50%) rotate(-10deg) scale(1.8);opacity:0;pointer-events:none;box-shadow:6px 6px 0 var(--extrude)}
+.stamp.on{animation:stamp .42s cubic-bezier(.2,1.4,.4,1) forwards}
+@keyframes stamp{to{opacity:1;transform:translate(-50%,-50%) rotate(-10deg) scale(1)}}
+.x{position:absolute;top:8px;right:8px;width:44px;height:44px;border:0;background:transparent;color:var(--muted);cursor:pointer;display:grid;place-items:center}
+.x:hover{color:var(--ink)}
+
+/* ---------- portal ---------- */
+.portal{min-height:100vh}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:color-mix(in srgb,var(--bg) 86%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.bar-in{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.who{display:flex;align-items:center;gap:12px;font-size:14px;color:var(--muted)}
+.av{width:34px;height:34px;border-radius:50%;background:var(--panel-2);border:1px solid var(--blue-dim);display:grid;place-items:center;font-weight:700;color:var(--blue)}
+.ghost{appearance:none;background:transparent;border:1px solid var(--line);color:var(--ink);font:500 14px var(--sans);min-height:40px;padding:0 14px;cursor:pointer}
+.ghost:hover{border-color:var(--blue)}
+.main{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:40px 64px;display:flex;flex-direction:column;gap:40px}
+.top{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-end;justify-content:space-between}
+.hello{display:flex;flex-direction:column;gap:8px;min-width:0}
+.hello h2{margin:0;font-family:var(--sans);font-weight:700;font-size:clamp(34px,5.5vw,56px);line-height:1.02;letter-spacing:-.02em;text-wrap:balance}
+.hello h2 em{font-style:normal;color:var(--blue)}
+.hello p{margin:0;color:var(--muted)}
+.statement{min-width:260px;flex:0 1 320px;border:2px solid var(--ink);box-shadow:10px 10px 0 var(--blue);padding:18px 20px;display:grid;grid-template-columns:1fr auto;gap:8px 16px;font-family:var(--mono);font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;background:var(--panel)}
+.statement b{font-weight:500;color:var(--ink);text-align:right}
+.statement .rule{grid-column:1/-1;border-top:1px dashed var(--line)}
+.meter{grid-column:1/-1;height:4px;background:var(--line);overflow:hidden}
+.meter i{display:block;height:100%;background:var(--blue)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr));gap:24px}
+.ch{border:1px solid var(--line);background:color-mix(in srgb,var(--panel) 92%,transparent);display:flex;flex-direction:column}
+.ch-h{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:20px 22px 16px;border-bottom:1px solid var(--line)}
+.ch-h h3{margin:0;font-weight:700;font-size:20px}
+.ch-h span{font-family:var(--mono);font-size:12px;letter-spacing:.12em;color:var(--muted);white-space:nowrap}
+.lessons{list-style:none;margin:0;padding:6px 0}
+.lesson{appearance:none;width:100%;background:transparent;border:0;color:inherit;font:inherit;text-align:left;cursor:pointer;display:grid;grid-template-columns:44px 1fr auto;align-items:center;gap:12px;padding:12px 22px;min-height:56px}
+.lesson:hover{background:var(--panel-2)}
+.lesson .num{font-family:var(--mono);font-size:13px;color:var(--muted)}
+.lesson .t{min-width:0}
+.lesson .t b{display:block;font-weight:600}
+.lesson .t small{color:var(--muted);font-size:13px}
+.pill{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;padding:4px 9px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.pill.cleared{border-color:var(--blue-dim);color:var(--blue)}
+.pill.next{background:var(--blue);border-color:var(--blue);color:#fff}
+.lesson[aria-disabled="true"]{cursor:not-allowed;opacity:.55}
+.lesson[aria-disabled="true"]:hover{background:transparent}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:70;max-width:calc(100% - 32px);box-sizing:border-box;background:var(--panel-2);border:1px solid var(--line);padding:12px 16px;font-size:14px}
+@media (max-width:560px){
+  .lesson{grid-template-columns:32px 1fr;padding:12px 16px}
+  .lesson .pill{grid-column:2;justify-self:start}
+}
+@media (prefers-reduced-motion:reduce){
+  .stamp.on{animation:none;opacity:1;transform:translate(-50%,-50%) rotate(-10deg)}
+}
+</style>
+</head>
+<body>
+<canvas id="petals" class="fx" aria-hidden="true"></canvas>
+
+<div class="page">
+  <!-- SIGN-IN SCENE -->
+  <main id="gate-view" class="scene">
+    <div class="moon">
+      <video src="assets/face.mp4" poster="assets/poster.jpg" autoplay muted loop playsinline preload="auto" aria-label="A figure looking upward, crying, wrapped in barbed wire, with glowing butterflies fluttering around her."></video>
+    </div>
+    <span class="kana-v" lang="ja" aria-hidden="true">クリアード</span>
+    <div class="roses" aria-hidden="true"><img src="assets/roses.jpg" alt=""></div>
+
+    <div class="laser" id="laser" aria-hidden="true"></div>
+
+    <div class="word">
+      <div class="impact" aria-hidden="true"></div>
+      <h1 class="wm" aria-label="00 Cleared"><span class="wm-n" aria-hidden="true"><span>0</span><span>0</span></span><span class="wm-t" aria-hidden="true">CLEARED</span></h1>
+      <span class="tag">nothing owed</span>
+    </div>
+
+    <section class="card" aria-labelledby="signin-title">
+      <h2 id="signin-title">Sign in</h2>
+      <p>Use the Discord account that holds your member role.</p>
+      <button class="cta" id="discord-btn" type="button">Continue with Discord</button>
+      <p class="fine">Lessons play in Google Chrome on your computer or phone.<br><a href="#terms">Terms of sale</a> · <a href="#privacy">Privacy policy</a></p>
+      <span class="demo">Demo build · sample data, no real sign-in</span>
+    </section>
+  </main>
+
+  <!-- PORTAL -->
+  <section id="portal-view" class="portal" hidden>
+    <div class="bar">
+      <div class="bar-in">
+        <div class="wm sm" aria-label="Cleared"><span class="wm-t" aria-hidden="true">CLEARED</span><span class="wm-k" lang="ja" aria-hidden="true">クリア</span></div>
+        <div class="who">
+          <span>Sample member</span>
+          <span class="av" aria-hidden="true">S</span>
+          <button class="ghost" id="signout" type="button">Sign out</button>
+        </div>
+      </div>
+    </div>
+    <main class="main">
+      <div class="top">
+        <div class="hello">
+          <span class="eyebrow">Member portal</span>
+          <h2>Welcome back. Keep it <em>cleared.</em></h2>
+          <p>Pick up where you left off. Lessons open in Chrome.</p>
+        </div>
+        <div class="statement" aria-label="Your progress">
+          <span>Lessons cleared</span><b>3 / 8</b>
+          <span>Up next</span><b>1.4</b>
+          <span class="rule" aria-hidden="true"></span>
+          <span>Owed</span><b>0.00</b>
+          <div class="meter" aria-hidden="true"><i style="width:37.5%"></i></div>
+        </div>
+      </div>
+      <div class="chapters" id="chapters"></div>
+      <span class="demo">Demo build · sample curriculum, swap in your real lessons</span>
+    </main>
+  </section>
+</div>
+
+<!-- POPUP -->
+<div class="scrim" id="scrim" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="m-title">
+    <button class="x" id="m-close" type="button" aria-label="Close">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+    <span class="eyebrow" id="m-title">Clearing your balance</span>
+    <div class="ring">
+      <svg viewBox="0 0 120 120" aria-hidden="true">
+        <circle class="track" cx="60" cy="60" r="52" fill="none" stroke-width="3"/>
+        <circle class="arc" id="arc" cx="60" cy="60" r="52" fill="none" stroke-width="3" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="326.7"/>
+      </svg>
+      <div class="zz">00</div>
+    </div>
+    <div class="balance" id="bal" aria-live="polite">1,240.00</div>
+    <ul class="steps" id="steps">
+      <li><span class="dot"></span>Checking your Discord member role</li>
+      <li><span class="dot"></span>Loading your lessons</li>
+      <li><span class="dot"></span>Clearing the balance</li>
+    </ul>
+    <div class="stamp" id="stamp" aria-hidden="true">CLEARED</div>
+    <button class="cta" id="enter" type="button" hidden>Enter the portal</button>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+(function(){
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var vid = document.querySelector('.moon video');
+  if (reduce && vid){ vid.removeAttribute('autoplay'); vid.pause(); }
+  else if (vid){ var pp = vid.play(); if (pp && pp.catch) pp.catch(function(){}); }
+
+  /* ---------- rays ---------- */
+  function rays(cv, cxF, cyF, n, alpha){
+    var d = Math.min(window.devicePixelRatio||1, 2), w = cv.clientWidth, h = cv.clientHeight, x = cv.getContext('2d');
+    cv.width = w*d; cv.height = h*d; x.setTransform(d,0,0,d,0,0); x.clearRect(0,0,w,h);
+    var cx = w*cxF, cy = h*cyF, R = Math.hypot(w,h);
+    for (var i=0;i<n;i++){
+      var a = (i/n)*Math.PI*2 + Math.sin(i*12.9898)*0.04, inner = 60 + (Math.abs(Math.sin(i*78.233))*140);
+      var g = x.createLinearGradient(cx,cy,cx+Math.cos(a)*R,cy+Math.sin(a)*R);
+      var tint = i%5===0 ? '76,141,255' : '200,214,240';
+      g.addColorStop(0,'rgba('+tint+',0)'); g.addColorStop(.25,'rgba('+tint+','+alpha+')'); g.addColorStop(1,'rgba('+tint+','+(alpha*.4)+')');
+      x.strokeStyle = g; x.lineWidth = i%7===0 ? 1.6 : .8;
+      x.beginPath(); x.moveTo(cx+Math.cos(a)*inner, cy+Math.sin(a)*inner); x.lineTo(cx+Math.cos(a)*R, cy+Math.sin(a)*R); x.stroke();
+    }
+  }
+  /* ---------- laser angle: from bottom-left past the word to the moon's lower edge ---------- */
+  var laser = document.getElementById('laser');
+  function placeLaser(){
+    var w = window.innerWidth, h = window.innerHeight;
+    var y0 = h*0.80, y1 = h*0.50;
+    var ang = Math.atan2(y1 - y0, w*1.1) * 180/Math.PI;
+    laser.style.setProperty('--la', ang.toFixed(2)+'deg');
+    laser.style.setProperty('--ly', (y0/h*100).toFixed(1)+'%');
+  }
+
+  /* ---------- drifting leaves ---------- */
+  var cv = document.getElementById('petals'), cx = cv.getContext('2d'), P = [], W, H;
+  function size(){ var d = Math.min(window.devicePixelRatio||1,2); W = cv.clientWidth; H = cv.clientHeight; cv.width = W*d; cv.height = H*d; cx.setTransform(d,0,0,d,0,0); }
+  function petal(init){ return { x:Math.random()*W, y:init?Math.random()*H:-20, r:4+Math.random()*6, vy:.3+Math.random()*.6, vx:-.2+Math.random()*.5, a:Math.random()*6.28, va:-.02+Math.random()*.04, sw:Math.random()*6.28, o:.25+Math.random()*.45 }; }
+  function drawPetal(p){
+    cx.save(); cx.translate(p.x,p.y); cx.rotate(p.a); cx.scale(1,.55+.45*Math.abs(Math.sin(p.sw)));
+    cx.globalAlpha=p.o; cx.fillStyle = p.r>8 ? '#2E5FB8' : '#4C8DFF'; cx.shadowColor='#4C8DFF'; cx.shadowBlur = p.r>8 ? 4 : 12;
+    cx.beginPath(); cx.moveTo(0,-p.r); cx.bezierCurveTo(p.r*.9,-p.r*.6,p.r*.7,p.r*.8,0,p.r); cx.bezierCurveTo(-p.r*.7,p.r*.8,-p.r*.9,-p.r*.6,0,-p.r); cx.fill(); cx.restore();
+  }
+  function tick(){ cx.clearRect(0,0,W,H); for (var i=0;i<P.length;i++){ var p=P[i]; p.y+=p.vy; p.x+=p.vx+Math.sin(p.sw)*.3; p.a+=p.va; p.sw+=.02; if(p.y>H+20||p.x<-30||p.x>W+30) P[i]=petal(false); drawPetal(p);} requestAnimationFrame(tick); }
+
+  function layout(){ size(); placeLaser(); }
+  layout(); window.addEventListener('resize', layout);
+  for (var i=0;i<(W<600?14:26);i++) P.push(petal(true));
+  if (reduce) P.forEach(drawPetal); else requestAnimationFrame(tick);
+
+  /* ---------- curriculum (sample) ---------- */
+  var chapters = [
+    { name:'Chapter One · Foundations', lessons:[
+      ['Know your number','Where every dollar actually goes','cleared'],
+      ['The buffer','Building an emergency fund first','cleared'],
+      ['Killing debt','Avalanche vs. snowball, and which to pick','cleared'],
+      ['Credit, decoded','How your score is really calculated','next']
+    ]},
+    { name:'Chapter Two · Building', lessons:[
+      ['Accounts that work','Checking, high-yield savings, brokerage','locked'],
+      ['Compounding','Why starting early beats starting big','locked'],
+      ['Tax-advantaged','401(k), Roth IRA and HSA basics','locked'],
+      ['Your first portfolio','Simple, boring, and on autopilot','locked']
+    ]}
+  ];
+  var label = { cleared:'Cleared', next:'Up next', locked:'Locked' }, host = document.getElementById('chapters');
+  chapters.forEach(function(ch, ci){
+    var done = ch.lessons.filter(function(l){return l[2]==='cleared';}).length;
+    var box = document.createElement('section'); box.className='ch';
+    var h = document.createElement('div'); h.className='ch-h';
+    var h3 = document.createElement('h3'); h3.textContent = ch.name;
+    var sp = document.createElement('span'); sp.textContent = done+' / '+ch.lessons.length;
+    h.appendChild(h3); h.appendChild(sp); box.appendChild(h);
+    var ul = document.createElement('ul'); ul.className='lessons';
+    ch.lessons.forEach(function(l, li){
+      var item = document.createElement('li'), b = document.createElement('button');
+      b.type='button'; b.className='lesson'; if (l[2]==='locked') b.setAttribute('aria-disabled','true');
+      var n = document.createElement('span'); n.className='num'; n.textContent=(ci+1)+'.'+(li+1);
+      var t = document.createElement('span'); t.className='t';
+      var tb = document.createElement('b'); tb.textContent=l[0];
+      var ts = document.createElement('small'); ts.textContent=l[1];
+      t.appendChild(tb); t.appendChild(ts);
+      var pill = document.createElement('span'); pill.className='pill '+l[2]; pill.textContent=label[l[2]];
+      b.appendChild(n); b.appendChild(t); b.appendChild(pill);
+      b.addEventListener('click', function(){ toast(l[2]==='locked' ? 'Clear Chapter One to unlock this lesson.' : '“'+l[0]+'” opens in the lesson player once your real lessons are connected.'); });
+      item.appendChild(b); ul.appendChild(item);
+    });
+    box.appendChild(ul); host.appendChild(box);
+  });
+
+  var tEl = document.getElementById('toast'), tT;
+  function toast(msg){ tEl.textContent=msg; tEl.hidden=false; clearTimeout(tT); tT=setTimeout(function(){ tEl.hidden=true; },3200); }
+
+  /* ---------- popup ---------- */
+  var scrim=document.getElementById('scrim'), arc=document.getElementById('arc'), bal=document.getElementById('bal'),
+      steps=document.querySelectorAll('#steps li'), stamp=document.getElementById('stamp'), enter=document.getElementById('enter'),
+      gateV=document.getElementById('gate-view'), portV=document.getElementById('portal-view'), raf, START=1240, C=326.7;
+  function fmt(v){ return v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+  function reset(){ cancelAnimationFrame(raf); arc.style.strokeDashoffset=C; bal.textContent=fmt(START); steps.forEach(function(s){s.classList.remove('done');}); stamp.classList.remove('on'); enter.hidden=true; }
+  function finish(){ arc.style.strokeDashoffset=0; bal.textContent='0.00'; steps.forEach(function(s){s.classList.add('done');}); stamp.classList.add('on'); enter.hidden=false; enter.focus(); }
+  function open(){
+    reset(); scrim.hidden=false; document.getElementById('m-close').focus();
+    if (reduce){ finish(); return; }
+    var dur=2400, t0=null;
+    function step(ts){ if(!t0) t0=ts; var k=Math.min((ts-t0)/dur,1), e=1-Math.pow(1-k,3);
+      bal.textContent=fmt(START*(1-e)); arc.style.strokeDashoffset=C*(1-e);
+      steps.forEach(function(s,i){ if(k>(i+1)/3.4) s.classList.add('done'); });
+      if(k<1) raf=requestAnimationFrame(step); else finish(); }
+    raf=requestAnimationFrame(step);
+  }
+  function close(){ cancelAnimationFrame(raf); scrim.hidden=true; document.getElementById('discord-btn').focus(); }
+  document.getElementById('discord-btn').addEventListener('click', open);
+  document.getElementById('m-close').addEventListener('click', close);
+  scrim.addEventListener('click', function(e){ if(e.target===scrim) close(); });
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape' && !scrim.hidden) close(); });
+  enter.addEventListener('click', function(){ scrim.hidden=true; gateV.hidden=true; portV.hidden=false; window.scrollTo(0,0); });
+  document.getElementById('signout').addEventListener('click', function(){ portV.hidden=true; gateV.hidden=false; window.scrollTo(0,0); toast('Signed out.'); });
+})();
+</script>
+</body>
+</html>
