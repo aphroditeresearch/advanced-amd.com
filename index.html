@@ -175,15 +175,17 @@ a{color:var(--blue);text-underline-offset:3px}
 /* ---------- portal ---------- */
 .portal{min-height:100vh}
 .bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:color-mix(in srgb,var(--bg) 86%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
-.bar-in{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.bar-in{max-width:1760px;margin:0 auto;padding-left:max(clamp(16px,3vw,48px),env(safe-area-inset-left,0px));padding-right:max(clamp(16px,3vw,48px),env(safe-area-inset-right,0px));padding-block:12px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .who{display:flex;align-items:center;gap:12px;font-size:14px;color:var(--muted)}
 .av{width:34px;height:34px;border-radius:50%;background:var(--panel-2);border:1px solid var(--blue-dim);display:grid;place-items:center;font-weight:700;color:var(--blue)}
 .ghost{appearance:none;background:transparent;border:1px solid var(--line);color:var(--ink);font:500 14px var(--sans);min-height:40px;padding:0 14px;cursor:pointer}
 .ghost:hover{border-color:var(--blue)}
-.main{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:40px 64px;display:flex;flex-direction:column;gap:40px}
+.main{max-width:1760px;margin:0 auto;padding-left:max(clamp(16px,3vw,48px),env(safe-area-inset-left,0px));padding-right:max(clamp(16px,3vw,48px),env(safe-area-inset-right,0px));padding-block:40px 64px;display:flex;flex-direction:column;gap:40px}
 .top{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-end;justify-content:space-between}
-.hello{display:flex;flex-direction:column;gap:8px;min-width:0}
-.hello h2{margin:0;font-family:var(--sans);font-weight:700;font-size:clamp(34px,5.5vw,56px);line-height:1.02;letter-spacing:-.02em;text-wrap:balance}
+.hello{display:flex;flex-direction:column;gap:4px;min-width:0}
+.hello h2{margin:0;font-family:var(--sans);font-weight:700;font-size:clamp(24px,2.8vw,32px);line-height:1.15;letter-spacing:-.01em;text-wrap:balance;overflow-wrap:anywhere}
+.hello .hi-sub{margin:0;font-size:clamp(17px,1.8vw,20px);font-weight:600;color:var(--muted)}
+.hello .hi-sub em{font-style:normal;color:var(--blue);letter-spacing:.04em}
 .hello h2 em{font-style:normal;color:var(--blue)}
 .hello p{margin:0;color:var(--muted)}
 .statement{min-width:260px;flex:0 1 320px;border:2px solid var(--ink);box-shadow:10px 10px 0 var(--blue);padding:18px 20px;display:grid;grid-template-columns:1fr auto;gap:8px 16px;font-family:var(--mono);font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;background:var(--panel)}
@@ -249,7 +251,8 @@ a{color:var(--blue);text-underline-offset:3px}
 .watch:hover{background:#6FA3FF;border-color:#6FA3FF}
 .lesson.done .t b{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--blue-dim)}
 /* homework + breakdowns */
-.cards{display:flex;flex-direction:column;gap:16px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,520px),1fr));gap:16px;align-items:start}
+.cards .empty{grid-column:1/-1}
 .hw{border:1px solid var(--line);background:color-mix(in srgb,var(--panel) 92%,transparent);padding:20px 22px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 20px;align-items:start}
 .hw h3{margin:0;font-size:18px;font-weight:700}
 .hw .meta{display:flex;flex-wrap:wrap;gap:8px 14px;font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
@@ -284,8 +287,8 @@ a{color:var(--blue);text-underline-offset:3px}
   .hw{grid-template-columns:1fr}
 }
 /* ---------- course layout (lectures + breakdowns): sidebar list + content ---------- */
-.main.wide{max-width:1240px}
-.course{display:grid;grid-template-columns:minmax(0,370px) minmax(0,1fr);gap:28px;align-items:start}
+.main.wide{max-width:1760px}
+.course{display:grid;grid-template-columns:minmax(0,clamp(320px,24vw,420px)) minmax(0,1fr);gap:clamp(20px,2.4vw,40px);align-items:start}
 .side{position:sticky;top:calc(env(safe-area-inset-top,0px) + 76px);max-height:calc(100vh - 96px);overflow:auto;border:1px solid var(--line);background:color-mix(in srgb,var(--panel) 94%,transparent);scrollbar-width:thin}
 .side-h{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
 .side-h .wm{font-size:26px}
@@ -322,7 +325,7 @@ a{color:var(--blue);text-underline-offset:3px}
 .pane{display:flex;flex-direction:column;gap:18px;min-width:0}
 .pane .kick{font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--kana-c)}
 .pane h3{margin:0;font-family:var(--display);font-style:italic;font-weight:900;font-stretch:125%;font-size:clamp(30px,4vw,46px);line-height:1;letter-spacing:-.02em;text-wrap:balance}
-.player{position:relative;width:100%;max-width:100%;aspect-ratio:16/9;border:1px solid var(--line);overflow:hidden;background:#000 url("poster.jpg") 65% 30%/cover no-repeat;display:grid;place-items:center}
+.player{position:relative;width:100%;max-width:min(100%,calc((100vh - 380px) * 16 / 9));aspect-ratio:16/9;border:1px solid var(--line);overflow:hidden;background:#000 url("poster.jpg") 65% 30%/cover no-repeat;display:grid;place-items:center}
 .player::before{content:"";position:absolute;inset:0;background:#2F6BFF;mix-blend-mode:color;opacity:.7}
 .player::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(3,5,10,.85),rgba(3,5,10,.15) 55%)}
 .player video{position:relative;z-index:2;width:100%;height:100%;display:block;background:#000}
@@ -434,7 +437,8 @@ img,video{-webkit-user-drag:none;user-drag:none}
     <main class="main wide" data-view="lectures">
       <div class="hello">
         <span class="eyebrow">Member portal</span>
-        <h2>Welcome back <span id="hello-name">Member</span>. Time to go <em>clear</em>.</h2>
+        <h2>Welcome back <span id="hello-name">Member</span>.</h2>
+        <p class="hi-sub">Time to go <em>CLEAR</em>.</p>
       </div>
       <div class="course">
         <aside class="side" aria-label="Lessons">
