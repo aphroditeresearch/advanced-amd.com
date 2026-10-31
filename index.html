@@ -7,7 +7,7 @@
 <meta name="description" content="00 Cleared mentorship. Members sign in with Discord.">
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#03050A">
-<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
 <style>
 /* base reset (was supplied by the preview host) */
 :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -68,7 +68,8 @@ a{color:var(--blue);text-underline-offset:3px}
   -webkit-mask-image:linear-gradient(to bottom,#000 70%,transparent 100%);mask-image:linear-gradient(to bottom,#000 70%,transparent 100%)}
 .moon video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:70% 35%;display:block;max-width:100%;filter:contrast(1.08) brightness(1.05)}
 /* blue tint over the black-and-white footage, like the still artwork */
-.moon::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:#2F6BFF;mix-blend-mode:color;opacity:.74}
+.moon::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:#2F6BFF;mix-blend-mode:color;opacity:0;transition:opacity .6s ease}
+.moon.ready::after{opacity:.74}
 /* soft blue glow behind her face and shoulders */
 .moon::before{content:"";position:absolute;inset:0;z-index:2;pointer-events:none;
   background:radial-gradient(ellipse 38% 46% at 62% 52%,color-mix(in srgb,var(--blue) 38%,transparent),transparent 72%);mix-blend-mode:screen}
@@ -217,10 +218,10 @@ a{color:var(--blue);text-underline-offset:3px}
   <!-- SIGN-IN SCENE -->
   <main id="gate-view" class="scene">
     <div class="moon">
-      <video src="assets/face.mp4" poster="assets/poster.jpg" autoplay muted loop playsinline preload="auto" aria-label="A figure looking upward, crying, wrapped in barbed wire, with glowing butterflies fluttering around her."></video>
+      <video src="face.mp4" poster="poster.jpg" autoplay muted loop playsinline preload="auto" aria-label="A figure looking upward, crying, wrapped in barbed wire, with glowing butterflies fluttering around her."></video>
     </div>
     <span class="kana-v" lang="ja" aria-hidden="true">クリアード</span>
-    <div class="roses" aria-hidden="true"><img src="assets/roses.jpg" alt=""></div>
+    <div class="roses" aria-hidden="true"><img src="roses.jpg" alt=""></div>
 
     <div class="laser" id="laser" aria-hidden="true"></div>
 
@@ -303,6 +304,7 @@ a{color:var(--blue);text-underline-offset:3px}
 (function(){
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var vid = document.querySelector('.moon video');
+  if (vid){ var mk=function(){ vid.parentNode.classList.add('ready'); }; if (vid.readyState>=2) mk(); else { vid.addEventListener('loadeddata', mk); } }
   if (reduce && vid){ vid.removeAttribute('autoplay'); vid.pause(); }
   else if (vid){ var pp = vid.play(); if (pp && pp.catch) pp.catch(function(){}); }
 
