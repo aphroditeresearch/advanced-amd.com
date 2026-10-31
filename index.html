@@ -361,6 +361,9 @@ a{color:var(--blue);text-underline-offset:3px}
 .pf-l small{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .pf-list time{font-family:var(--mono);font-size:13px;color:var(--kana-c);white-space:nowrap}
 .pf-list .pf-none{color:var(--muted);font-size:14px;border:0}
+/* returning from Discord: no intro replay behind the popup */
+body.returning #gate-view,body.returning #gate-view *,body.returning .scene::after{animation:none!important}
+body.returning .scene::after{opacity:0}
 /* ---------- lockdown ---------- */
 body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 input,textarea{-webkit-user-select:text;user-select:text}
@@ -1011,7 +1014,9 @@ img,video{-webkit-user-drag:none;user-drag:none}
     raf=requestAnimationFrame(step);
   }
   function closePopup(){ cancelAnimationFrame(raf); scrim.hidden=true; document.getElementById('discord-btn').focus(); }
+  var booted = false, pendingEnter = false;
   function enterPortal(){
+    if (!booted){ pendingEnter = true; enter.disabled = true; enter.textContent = 'Loading your portal…'; return; }   // account still loading
     scrim.hidden=true; gateV.hidden=true; portV.hidden=false;
     if (VIEWS.indexOf((location.hash||'').replace('#',''))===-1) { try { history.replaceState(null,'','#lectures'); } catch(e) {} }
     showView(); window.scrollTo(0,0);
@@ -1052,11 +1057,17 @@ img,video{-webkit-user-drag:none;user-drag:none}
       try { history.replaceState(null,'',location.pathname); } catch(e) {}
       setTimeout(function(){ toast(ERRORS[errMatch[1]] || 'Sign-in didn\'t work. Try again.'); }, reduce ? 0 : 2200);
     }
-    // coming back from Discord: play the stamp, then open the portal
-    if (SESSION && /[?&]signedin=1/.test(location.search)){
-      try { history.replaceState(null,'',location.pathname + location.hash); } catch(e) {}
-      setTimeout(openPopup, reduce ? 0 : 2300);
-    }
+    booted = true;
+    if (RETURNING && !SESSION){ closePopup(); toast('Sign-in didn\'t finish. Try again.'); }
+    if (pendingEnter){ pendingEnter = false; enter.disabled = false; enter.textContent = 'Enter the portal'; if (SESSION || !BACKEND) enterPortal(); }
+  }
+  // Coming back from Discord: skip the intro, open the countdown + stamp straight away,
+  // and load the account in the background while it plays.
+  var RETURNING = /[?&]signedin=1/.test(location.search);
+  if (RETURNING){
+    document.body.classList.add('returning');
+    try { history.replaceState(null,'',location.pathname + location.hash); } catch(e) {}
+    if (CHROME) openPopup();
   }
   if (window.CLEARED_SESSION && window.CLEARED_SESSION.user){ SESSION = window.CLEARED_SESSION; BACKEND = true; boot(); }
   else if (location.protocol === 'file:'){ boot(); }
