@@ -590,8 +590,8 @@ a{color:var(--blue);text-underline-offset:3px}
      ===================================================================== */
   // Discord role IDs that unlock each chapter (Server Settings > Roles > right-click > Copy Role ID)
   var ROLES = {
-    chapter2: 'DISCORD_ROLE_ID_CHAPTER_2',
-    chapter3: 'DISCORD_ROLE_ID_CHAPTER_3'
+    chapter2: '1566212145535000576',
+    chapter3: '1566212075103981598'
   };
   var CURRICULUM = [
     { id:'ch1', name:'Chapter 1', role:null,           lessons:['OHLC / OLHC','AMD','SMT / POI','Break of Structure'] },
@@ -937,6 +937,19 @@ a{color:var(--blue);text-underline-offset:3px}
     var btn = document.getElementById('discord-btn');
     if (SESSION){ btn.textContent = 'Continue as ' + (user().displayName || user().username); }
     document.querySelectorAll('.card .demo').forEach(function(n){ n.hidden = BACKEND; });
+    // sign-in problems sent back from Discord
+    var errMatch = location.search.match(/[?&]error=([a-z_]+)/);
+    if (errMatch){
+      var ERRORS = {
+        denied:'Sign-in was cancelled.',
+        expired:'That sign-in link expired. Try again.',
+        not_member:'That Discord account isn\'t in the 00 Cleared server.',
+        no_access:'Your Discord account doesn\'t have member access yet.',
+        discord:'Discord didn\'t respond. Try again in a moment.'
+      };
+      try { history.replaceState(null,'',location.pathname); } catch(e) {}
+      setTimeout(function(){ toast(ERRORS[errMatch[1]] || 'Sign-in didn\'t work. Try again.'); }, reduce ? 0 : 2200);
+    }
     // coming back from Discord: play the stamp, then open the portal
     if (SESSION && /[?&]signedin=1/.test(location.search)){
       try { history.replaceState(null,'',location.pathname + location.hash); } catch(e) {}

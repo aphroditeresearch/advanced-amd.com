@@ -1,0 +1,16 @@
+// GET /api/login → sends the member to Discord to approve sign-in.
+const crypto = require('crypto');
+const { env, cookie, STATE_COOKIE, redirectUri, redirect } = require('./_lib');
+
+module.exports = async (req, res) => {
+  const state = crypto.randomBytes(16).toString('hex');
+  const params = new URLSearchParams({
+    client_id: env('DISCORD_CLIENT_ID'),
+    response_type: 'code',
+    redirect_uri: redirectUri(req),
+    scope: 'identify guilds.members.read',
+    state,
+    prompt: 'none', // skip the approval screen for members who already approved
+  });
+  redirect(res, 'https://discord.com/oauth2/authorize?' + params.toString(), [cookie(STATE_COOKIE, state, 600)]);
+};

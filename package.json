@@ -1,0 +1,8 @@
+{
+  "name": "cleared-site",
+  "private": true,
+  "description": "00 Cleared member site with Discord sign-in",
+  "engines": {
+    "node": ">=18"
+  }
+}

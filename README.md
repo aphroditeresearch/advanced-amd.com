@@ -6,16 +6,6 @@ The page loads straight into a full-screen scene (looping video, rose strip, the
 
 It's a single static page: plain HTML, CSS and JavaScript, no build step and no dependencies. Fonts load from Google Fonts.
 
-## Files
-
-```
-index.html    the whole site (markup, styles, script)
-face.mp4      looping background video (1600px, ~4 MB, no audio)
-poster.jpg    still frame shown while the video loads
-roses.jpg     rose strip on the left of the scene
-favicon.svg   browser tab icon
-```
-
 ## Run it locally
 
 Open `index.html` in Chrome. Or serve the folder so the video loads the same way it will online:
@@ -24,6 +14,17 @@ Open `index.html` in Chrome. Or serve the folder so the video loads the same way
 python3 -m http.server 8000
 # then open http://localhost:8000
 ```
+
+## Files
+
+```
+index.html          the whole page
+face.mp4, poster.jpg, roses.jpg, favicon.svg
+api/                Discord sign-in (Vercel functions)
+package.json        tells Vercel which Node version to use
+```
+
+Keep the `api` folder as a folder in the repo. If you upload through GitHub's website, drag the whole `api` folder onto the upload page so it isn't flattened.
 
 ## Put it on GitHub
 
@@ -70,24 +71,42 @@ Everything you edit lives in the **CONFIG** block near the bottom of `index.html
 
 ## Discord sign-in
 
-The page already knows how to talk to a sign-in backend. It calls `GET /api/session` on load:
+Sign-in runs on small Vercel functions in the `api` folder. No bot is needed.
 
-- `200` with `{ "user": { "id", "username", "displayName", "avatar", "banner", "joinedAt" }, "roles": ["<role id>", ...] }` → signed in. The greeting, profile and chapter locks use this data, and the demo switches disappear.
-- `401` → a backend exists but nobody is signed in. "Continue with Discord" sends the member to `/api/login`.
-- Anything else (no backend yet) → demo mode with the Access switches.
+| Route | What it does |
+|---|---|
+| `/api/login` | Sends the member to Discord to approve sign-in |
+| `/api/callback` | Discord sends them back here. Checks they're in your server, reads their profile and roles, starts a 7-day session |
+| `/api/session` | Tells the page who's signed in, their roles and saved progress. Re-checks roles with Discord every 5 minutes |
+| `/api/progress` | Saves lesson, breakdown and homework completions with the date (needs the optional database) |
+| `/api/logout` | Signs out |
 
-To keep progress across devices, the backend also handles:
+### Setup
 
-- `POST /api/progress` with `{ "key": "ch1-2", "completedAt": "2026-10-31T21:04:00Z" }` (or `null` to clear) → save it for the signed-in member.
-- Include their saved progress in the session response as `"progress": { "ch1-2": "2026-10-31T21:04:00Z", ... }`.
+1. **Create the Discord app.** Go to https://discord.com/developers/applications → **New Application** → name it "00 Cleared". Open **OAuth2**:
+   - Copy the **Client ID**, then **Reset Secret** and copy the **Client Secret**.
+   - Under **Redirects**, add `https://www.advanced-amd.com/api/callback` and save. (Add your `*.vercel.app` address too if you test there.)
+2. **Copy IDs from Discord.** Turn on User Settings → Advanced → **Developer Mode**. Right-click your server icon → **Copy Server ID**. In Server Settings → Roles, right-click the Chapter 2 and Chapter 3 roles → **Copy Role ID**, and paste them into `ROLES` in `index.html`.
+3. **Add environment variables in Vercel** (Project → Settings → Environment Variables), then redeploy:
 
-The watch check runs in the browser, so treat it as a strong nudge rather than proof. If you need it airtight, have the backend record watch time from the video host (most hosts report play progress) and only accept completions it can confirm.
+   | Name | Value |
+   |---|---|
+   | `DISCORD_CLIENT_ID` | from step 1 |
+   | `DISCORD_CLIENT_SECRET` | from step 1 (keep it secret) |
+   | `DISCORD_GUILD_ID` | your Server ID |
+   | `SESSION_SECRET` | a long random string, e.g. from https://generate-secret.vercel.app/64 |
+   | `MEMBER_ROLE_ID` | optional: only members with this role can sign in at all |
+   | `DISCORD_REDIRECT_URI` | optional: set it if sign-in says the redirect is invalid, to exactly the URL from step 1 |
 
-After Discord sends the member back, redirect them to `/?signedin=1` and the page plays the stamp and opens the portal. "Sign out" goes to `/api/logout`.
+4. **Optional, for progress across devices:** in Vercel → **Storage** (or Marketplace) → add **Upstash Redis** and connect it to this project. It adds `KV_REST_API_URL` and `KV_REST_API_TOKEN` automatically. Without it, sign-in and roles still work, and progress stays in each member's browser.
 
-The backend needs four routes (Vercel serverless functions work well here): `/api/login`, `/api/callback`, `/api/session` and `/api/logout`, using Discord OAuth2 with the `identify` and `guilds.members.read` scopes.
+### What members see
 
-Locking on the page only controls what members see. Serve lesson videos through the backend with links checked against the same roles, so a locked video can't be opened by someone who copies its address.
+- "Continue with Discord" → Discord's approval screen (first time only) → back to the site, the stamp plays, and the portal opens with their name, avatar, banner, join date and Discord ID.
+- Chapters unlock from their Discord roles. Give or remove a role in Discord and the site follows within about 5 minutes.
+- Not in your server, missing the base role, or cancelled: they land back on the sign-in page with a short message saying why.
+
+The watch-to-complete check runs in the browser, so treat it as a strong nudge rather than proof. For airtight tracking, confirm watch time from your video host before saving a completion. Completion dates are stamped with the server's clock, so they can't be backdated.
 
 ## Asset rights
 
