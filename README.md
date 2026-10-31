@@ -108,6 +108,15 @@ Sign-in runs on small Vercel functions in the `api` folder. No bot is needed.
 
 The watch-to-complete check runs in the browser, so treat it as a strong nudge rather than proof. For airtight tracking, confirm watch time from your video host before saving a completion. Completion dates are stamped with the server's clock, so they can't be backdated.
 
+## Chrome only and lockdown
+
+- Any browser other than Google Chrome (Safari, Edge, Brave, Firefox, Opera and so on) gets a "Wrong browser" screen with a Get Google Chrome button and a Copy link button. Chrome on iPhone and iPad is allowed. `/api/login` also turns non-Chrome browsers away.
+- Right-click, dragging, text selection, copy, printing, Save Page, View Source and the developer-tools shortcuts (F12, Ctrl/Cmd+Shift+I/J/C, Cmd+Option+I/J/C/U) are blocked.
+- If developer tools are opened docked to the window, the page covers itself and pauses video until they're closed.
+- Lesson videos have download, picture-in-picture, casting and playback-speed controls turned off.
+
+These stop casual copying, but nothing running in a browser can stop someone determined (screen recording, a browser that lies about itself, devtools opened in a separate window). The real protection for lesson videos is on the server: host them on a service with signed, expiring links (Mux, Cloudflare Stream, Bunny Stream or private Vimeo) and have the backend hand out a link only to members whose role allows that chapter.
+
 ## Asset rights
 
 The background video and rose artwork come from third-party wallpaper sources. Confirm you have the right to use them commercially, or swap in your own, before the site goes public.

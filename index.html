@@ -358,6 +358,21 @@ a{color:var(--blue);text-underline-offset:3px}
 .pf-l small{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .pf-list time{font-family:var(--mono);font-size:13px;color:var(--kana-c);white-space:nowrap}
 .pf-list .pf-none{color:var(--muted);font-size:14px;border:0}
+/* ---------- lockdown ---------- */
+body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+input,textarea{-webkit-user-select:text;user-select:text}
+img,video{-webkit-user-drag:none;user-drag:none}
+.wall{position:fixed;inset:0;z-index:200;display:grid;place-items:center;background:var(--bg);
+  padding:max(24px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(24px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.wall-in{width:100%;max-width:440px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px;padding:34px 30px 28px;background:var(--panel);border:2px solid var(--ink);box-shadow:14px 14px 0 var(--blue)}
+.wall .wm{font-size:30px}
+.wall h2{margin:6px 0 0;font-family:var(--sans);font-weight:700;font-size:28px;letter-spacing:-.01em}
+.wall p{margin:0;color:var(--muted)}
+.wall p b{color:var(--ink)}
+.wall .row{display:flex;flex-wrap:wrap;gap:12px}
+.wall .cta{width:auto;padding:0 22px;display:inline-flex;align-items:center;text-decoration:none}
+.wall .ghost{min-height:54px}
+.wall .linkbox{font-family:var(--mono);font-size:12px;color:var(--muted);word-break:break-all;-webkit-user-select:all;user-select:all}
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:70;max-width:calc(100% - 32px);box-sizing:border-box;background:var(--panel-2);border:1px solid var(--line);padding:12px 16px;font-size:14px}
 @media (max-width:560px){
   .lesson{grid-template-columns:32px minmax(0,1fr) auto;padding:12px 16px}
@@ -532,11 +547,92 @@ a{color:var(--blue);text-underline-offset:3px}
   </div>
 </div>
 
+<!-- WRONG BROWSER -->
+<div class="wall" id="wrongb" role="alertdialog" aria-modal="true" aria-labelledby="wb-h" hidden>
+  <div class="wall-in">
+    <div class="wm sm brand" aria-label="00 Cleared"><span class="wm-n" aria-hidden="true"><span>0</span><span>0</span></span><span class="wm-t" aria-hidden="true">CLEARED</span></div>
+    <h2 id="wb-h">Wrong browser.</h2>
+    <p><b>00 Cleared only works in Google Chrome.</b> Open this page in the Chrome app on your phone or computer.</p>
+    <div class="row">
+      <a class="cta" href="https://www.google.com/chrome/" target="_blank" rel="noopener">Get Google Chrome</a>
+      <button class="ghost" id="wb-copy" type="button">Copy link</button>
+    </div>
+    <span class="linkbox" id="wb-link"></span>
+  </div>
+</div>
+
+<!-- DEVTOOLS SHIELD -->
+<div class="wall" id="shield" role="alertdialog" aria-modal="true" aria-labelledby="sh-h" hidden>
+  <div class="wall-in">
+    <div class="wm sm brand" aria-label="00 Cleared"><span class="wm-n" aria-hidden="true"><span>0</span><span>0</span></span><span class="wm-t" aria-hidden="true">CLEARED</span></div>
+    <h2 id="sh-h">Close developer tools.</h2>
+    <p>The portal is paused while developer tools are open. Close them to keep going.</p>
+  </div>
+</div>
+
 <div class="toast" id="toast" role="status" hidden></div>
 
 <script>
 (function(){
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  /* ---------- Chrome only ---------- */
+  function isChrome(){
+    var ua = navigator.userAgent || '';
+    if (/CriOS\//.test(ua)) return true;                                  // Chrome on iPhone / iPad
+    if (navigator.brave) return false;
+    var d = navigator.userAgentData;
+    if (d && Array.isArray(d.brands) && d.brands.length){
+      return d.brands.some(function(b){ return b.brand === 'Google Chrome'; });
+    }
+    return /Chrome\//.test(ua) && /Google Inc/.test(navigator.vendor || '') &&
+           !/(Edg|EdgA|EdgiOS|OPR|Opera|SamsungBrowser|YaBrowser|Vivaldi|DuckDuckGo|Brave|UCBrowser|Silk)\//.test(ua);
+  }
+  var CHROME = isChrome();
+  if (!CHROME){
+    var wb = document.getElementById('wrongb');
+    document.getElementById('wb-link').textContent = location.href.split('#')[0];
+    document.getElementById('wb-copy').addEventListener('click', function(){
+      var link = location.href.split('#')[0], btn = this;
+      var done = function(){ btn.textContent = 'Copied'; setTimeout(function(){ btn.textContent = 'Copy link'; }, 1800); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(link).then(done, function(){ selectLink(); });
+      else selectLink();
+    });
+    function selectLink(){ var r = document.createRange(); r.selectNodeContents(document.getElementById('wb-link')); var sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); }
+    wb.hidden = false;
+    document.querySelector('.page').setAttribute('aria-hidden','true');
+  }
+
+  /* ---------- lockdown: no right-click, dev shortcuts, saving, dragging or selecting ---------- */
+  document.addEventListener('contextmenu', function(e){ e.preventDefault(); }, true);
+  document.addEventListener('dragstart', function(e){ e.preventDefault(); }, true);
+  document.addEventListener('selectstart', function(e){ var t = e.target; if (!(t && t.closest && t.closest('input,textarea,.linkbox'))) e.preventDefault(); }, true);
+  document.addEventListener('copy', function(e){ var t = document.activeElement; if (!(t && /INPUT|TEXTAREA/.test(t.tagName)) && !getSelection().toString().match(/^https?:/)) e.preventDefault(); }, true);
+  document.addEventListener('keydown', function(e){
+    var c = e.code, mod = e.ctrlKey || e.metaKey;
+    var block =
+      e.key === 'F12' ||
+      (mod && e.shiftKey && (c === 'KeyI' || c === 'KeyJ' || c === 'KeyC' || c === 'KeyK')) ||   // devtools, console, inspector
+      (e.metaKey && e.altKey && (c === 'KeyI' || c === 'KeyJ' || c === 'KeyC' || c === 'KeyU')) || // Mac devtools / view source
+      (mod && (c === 'KeyU' || c === 'KeyS' || c === 'KeyP'));                                       // view source, save, print
+    if (block){ e.preventDefault(); e.stopPropagation(); }
+  }, true);
+  window.addEventListener('beforeprint', function(){ document.body.style.visibility = 'hidden'; });
+  window.addEventListener('afterprint', function(){ document.body.style.visibility = ''; });
+
+  // Docked developer tools shrink the page area; pause everything while they're open.
+  // Skipped when the page is shown inside another page (a preview), where the sizes don't apply.
+  var shield = document.getElementById('shield');
+  if (window.top === window.self){
+    setInterval(function(){
+      var open = (window.outerWidth - window.innerWidth > 170) || (window.outerHeight - window.innerHeight > 220);
+      if (open !== !shield.hidden){
+        shield.hidden = !open;
+        if (open) document.querySelectorAll('video').forEach(function(v){ if (!v.paused){ v.pause(); v.dataset.resume = '1'; } });
+        else document.querySelectorAll('video[data-resume]').forEach(function(v){ delete v.dataset.resume; if (v.closest('.moon')) v.play().catch(function(){}); });
+      }
+    }, 1000);
+  }
+
   var vid = document.querySelector('.moon video');
   if (vid){ var mk=function(){ vid.parentNode.classList.add('ready'); }; if (vid.readyState>=2) mk(); else { vid.addEventListener('loadeddata', mk); } }
   if (reduce && vid){ vid.removeAttribute('autoplay'); vid.pause(); }
@@ -741,7 +837,8 @@ a{color:var(--blue);text-underline-offset:3px}
     }
     if (src){
       var v = document.createElement('video'); v.src = src; v.controls = true; v.playsInline = true; v.preload = 'metadata';
-      v.setAttribute('controlsList','nodownload noplaybackrate'); v.disablePictureInPicture = true;
+      v.setAttribute('controlsList','nodownload noplaybackrate noremoteplayback'); v.disablePictureInPicture = true; v.disableRemotePlayback = true;
+      v.addEventListener('contextmenu', function(e){ e.preventDefault(); });
       var st = watch[cur.key] || (watch[cur.key] = { max:0, pos:0 }), last = 0, warned = false, saveT = 0;
       v.addEventListener('loadedmetadata', function(){ if (st.pos && st.pos < v.duration - 2) v.currentTime = st.pos; last = v.currentTime; paintStatus(st.max / v.duration); });
       v.addEventListener('timeupdate', function(){
@@ -945,7 +1042,8 @@ a{color:var(--blue);text-underline-offset:3px}
         expired:'That sign-in link expired. Try again.',
         not_member:'That Discord account isn\'t in the 00 Cleared server.',
         no_access:'Your Discord account doesn\'t have member access yet.',
-        discord:'Discord didn\'t respond. Try again in a moment.'
+        discord:'Discord didn\'t respond. Try again in a moment.',
+        browser:'Sign in from Google Chrome.'
       };
       try { history.replaceState(null,'',location.pathname); } catch(e) {}
       setTimeout(function(){ toast(ERRORS[errMatch[1]] || 'Sign-in didn\'t work. Try again.'); }, reduce ? 0 : 2200);

@@ -2,7 +2,14 @@
 const crypto = require('crypto');
 const { env, cookie, STATE_COOKIE, redirectUri, redirect } = require('./_lib');
 
+// Chrome only. Browsers can fake this header, so it's a second line behind the page's own check.
+function isChrome(ua) {
+  if (/CriOS\//.test(ua)) return true;
+  return /Chrome\//.test(ua) && !/(Edg|EdgA|OPR|Opera|SamsungBrowser|YaBrowser|Vivaldi|DuckDuckGo|Brave|UCBrowser|Silk)\//.test(ua);
+}
+
 module.exports = async (req, res) => {
+  if (!isChrome(req.headers['user-agent'] || '')) return redirect(res, '/?error=browser');
   const state = crypto.randomBytes(16).toString('hex');
   const params = new URLSearchParams({
     client_id: env('DISCORD_CLIENT_ID'),
