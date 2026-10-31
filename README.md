@@ -52,29 +52,42 @@ To use your own domain (like `00cleared.com`), add it in the host's domain setti
 - **Terms of sale and Privacy policy** link to `#terms` and `#privacy`. Add real pages before you take payments.
 - The small "Demo build" labels on the sign-in card and portal can be removed once the above is real.
 
-## Chapters and Discord roles
+## Editing the portal
 
-The curriculum lives in the `CURRICULUM` array near the bottom of `index.html`:
+Everything you edit lives in the **CONFIG** block near the bottom of `index.html`:
 
-| Chapter | Lessons | Who can open it |
-|---|---|---|
-| Chapter 1 | OHLC / OLHC, AMD, SMT / POI, Break of Structure | Every member |
-| Chapter 2 | SMT Divergence, Daily Bias, Key Opens | Members with the Chapter 2 role |
-| Chapter 3 | Structural Inducement, Protected Structure | Members with the Chapter 3 role |
+- `ROLES`: the Discord role IDs that unlock Chapter 2 and Chapter 3. In Discord, turn on Developer Mode (User Settings → Advanced), then right-click a role in Server Settings → Roles → **Copy Role ID**.
+- `CURRICULUM`: chapters and lessons. Chapter 1 is open to every member. A lesson can be a plain title, or `{ title, video, summary }` to show a video and a short description in the player.
+- `HOMEWORK`: assignments shown on the Homework tab (`title`, `chapter`, `due`, `details`). There's a commented example to copy.
+- `BREAKDOWNS`: posts shown on the Breakdowns tab (`id`, `title`, `date`, `summary`, optional `video` and `link`).
 
-To connect it to your server:
+### Completion rules
 
-1. In Discord, turn on Developer Mode (User Settings → Advanced), then right-click each role in Server Settings → Roles and choose **Copy Role ID**.
-2. In `index.html`, paste those IDs into `ROLES.chapter2` and `ROLES.chapter3`.
-3. Your sign-in backend (Discord OAuth2 with the `guilds.members.read` scope) reads the member's roles for your server and puts them on the page before the main script runs:
+- **Lessons complete only after the full video is watched.** Only continuous playback counts, skipping ahead past the furthest point watched is blocked on the first watch, and the lesson ticks itself off when the video ends. Members can't tick lessons by hand.
+- Breakdowns with a video follow the same rule. Link-only breakdowns and homework are ticked by hand.
+- Every completion records the day it happened. The Profile tab lists each completed lesson, breakdown and homework with its date, newest first.
+- Progress is kept per Discord user. Until the backend is connected it's stored in that member's browser. In demo mode, lessons without a video play the site's sample clip so you can try the flow.
 
-   ```html
-   <script>window.CLEARED_SESSION = { roles: ["123456789012345678", "234567890123456789"] };</script>
-   ```
+## Discord sign-in
 
-   When `CLEARED_SESSION` is present, the portal unlocks chapters from those roles and hides the demo Access switches. When it's absent, the page runs in demo mode and the **Access** switches at the bottom of the portal stand in for the roles.
+The page already knows how to talk to a sign-in backend. It calls `GET /api/session` on load:
 
-Locking on the page only controls what members see. Serve the lesson videos through your backend (signed or expiring links checked against the same roles) so a locked video can't be opened by someone who copies its address.
+- `200` with `{ "user": { "id", "username", "displayName", "avatar", "banner", "joinedAt" }, "roles": ["<role id>", ...] }` → signed in. The greeting, profile and chapter locks use this data, and the demo switches disappear.
+- `401` → a backend exists but nobody is signed in. "Continue with Discord" sends the member to `/api/login`.
+- Anything else (no backend yet) → demo mode with the Access switches.
+
+To keep progress across devices, the backend also handles:
+
+- `POST /api/progress` with `{ "key": "ch1-2", "completedAt": "2026-10-31T21:04:00Z" }` (or `null` to clear) → save it for the signed-in member.
+- Include their saved progress in the session response as `"progress": { "ch1-2": "2026-10-31T21:04:00Z", ... }`.
+
+The watch check runs in the browser, so treat it as a strong nudge rather than proof. If you need it airtight, have the backend record watch time from the video host (most hosts report play progress) and only accept completions it can confirm.
+
+After Discord sends the member back, redirect them to `/?signedin=1` and the page plays the stamp and opens the portal. "Sign out" goes to `/api/logout`.
+
+The backend needs four routes (Vercel serverless functions work well here): `/api/login`, `/api/callback`, `/api/session` and `/api/logout`, using Discord OAuth2 with the `identify` and `guilds.members.read` scopes.
+
+Locking on the page only controls what members see. Serve lesson videos through the backend with links checked against the same roles, so a locked video can't be opened by someone who copies its address.
 
 ## Asset rights
 
