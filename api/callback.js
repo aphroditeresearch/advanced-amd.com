@@ -2,7 +2,7 @@
 // Swaps the one-time code for a token, reads their profile and server roles, and starts a session.
 const {
   env, parseCookies, clearCookie, STATE_COOKIE, SESSION_DAYS,
-  redirectUri, discord, profileFrom, writeSession, redirect,
+  redirectUri, discord, profileFrom, writeSession, redirect, recordMember,
 } = require('./_lib');
 
 module.exports = async (req, res) => {
@@ -55,5 +55,6 @@ module.exports = async (req, res) => {
     at: token.access_token,
     exp: Date.now() + expiresMs,
   };
+  try { await recordMember(session.user, session.roles); } catch (e) {}
   redirect(res, '/?signedin=1', [writeSession(res, session), clearCookie(STATE_COOKIE)]);
 };

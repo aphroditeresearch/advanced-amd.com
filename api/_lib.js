@@ -143,6 +143,41 @@ async function saveProgress(userId, key, completedAt) {
   return true;
 }
 
+/* ---------- admins + members ---------- */
+// Discord user IDs allowed into the admin panel (comma-separated in ADMIN_DISCORD_IDS).
+function adminIds() {
+  return (process.env.ADMIN_DISCORD_IDS || '1313595031466021026').split(',').map((x) => x.trim()).filter(Boolean);
+}
+function isAdmin(session) { return !!(session && session.user && adminIds().includes(session.user.id)); }
+
+// Remember who has signed in, for the admin Members view.
+async function recordMember(profile, roles) {
+  if (!kvConfigured()) return;
+  const row = Object.assign({}, profile, { roles: roles || [], lastSeen: new Date().toISOString() });
+  await kv(['HSET', 'members', profile.id, JSON.stringify(row)]);
+}
+async function listMembers() {
+  if (!kvConfigured()) return [];
+  const flat = await kv(['HGETALL', 'members']);
+  const out = [];
+  if (Array.isArray(flat)) for (let i = 0; i < flat.length; i += 2) { try { out.push(JSON.parse(flat[i + 1])); } catch (e) {} }
+  return out;
+}
+
+/* ---------- site content (announcements, homework, breakdowns, lessons) ---------- */
+// Which Discord role unlocks each chapter. Chapters added in the admin panel carry their own role.
+const CHAPTER_ROLES = { ch2: '1566212145535000576', ch3: '1566212075103981598' };
+
+async function loadContent() {
+  if (!kvConfigured()) return null;
+  const raw = await kv(['GET', 'content']);
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch (e) { return null; }
+}
+async function saveContent(content) {
+  await kv(['SET', 'content', JSON.stringify(content)]);
+}
+
 /* ---------- responses ---------- */
 function redirect(res, location, cookies) {
   if (cookies && cookies.length) res.setHeader('Set-Cookie', cookies);
@@ -163,5 +198,6 @@ function json(res, status, body, cookies) {
 module.exports = {
   DISCORD_API, SESSION_COOKIE, STATE_COOKIE, ROLE_REFRESH_MS, SESSION_DAYS,
   env, parseCookies, cookie, clearCookie, sign, verify, readSession, writeSession,
-  redirectUri, discord, profileFrom, kvConfigured, loadProgress, saveProgress, redirect, json,
+  redirectUri, discord, profileFrom, kvConfigured, kv, loadProgress, saveProgress, redirect, json,
+  adminIds, isAdmin, recordMember, listMembers, CHAPTER_ROLES, loadContent, saveContent,
 };

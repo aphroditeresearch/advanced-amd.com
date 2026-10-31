@@ -20,8 +20,9 @@ python3 -m http.server 8000
 ```
 index.html          the whole page
 face.mp4, poster.jpg, roses.jpg, favicon.svg
-api/                Discord sign-in (Vercel functions)
-package.json        tells Vercel which Node version to use
+blob-upload.js      video upload helper for the Admin tab
+api/                Discord sign-in, content and admin routes (Vercel functions)
+package.json        Node version and the Vercel Blob package
 ```
 
 Keep the `api` folder as a folder in the repo. If you upload through GitHub's website, drag the whole `api` folder onto the upload page so it isn't flattened.
@@ -107,6 +108,26 @@ Sign-in runs on small Vercel functions in the `api` folder. No bot is needed.
 - Not in your server, missing the base role, or cancelled: they land back on the sign-in page with a short message saying why.
 
 The watch-to-complete check runs in the browser, so treat it as a strong nudge rather than proof. For airtight tracking, confirm watch time from your video host before saving a completion. Completion dates are stamped with the server's clock, so they can't be backdated.
+
+## Admin panel
+
+An **Admin** tab appears in the portal for your Discord account only (ID `1313595031466021026`). To add more admins, set `ADMIN_DISCORD_IDS` in Vercel to a comma-separated list of Discord user IDs. Everyone else never sees the tab, and the server refuses admin requests from them.
+
+| Section | What you can do |
+|---|---|
+| Announcements | Post a banner at the top of every member's portal, with an optional end date. Members can dismiss it. |
+| Homework | Assign homework with a chapter, due date and details. Members mark it done and the date is logged. |
+| Lectures | Rename or add chapters (with the Discord role that unlocks each), add, reorder or delete lessons, and attach a video and notes to each lesson. |
+| Breakdowns | Post breakdowns with a video (upload or link), summary and an optional extra link. |
+| Members | Everyone who has signed in, when they were last seen, completion %, homework done and which chapters they can open. Select a member to see every completion with its date. |
+
+Once you save from the Admin tab, what's stored there replaces the lists in the CONFIG block of `index.html`.
+
+**Needs:**
+- **Upstash Redis** (see setup step 4) for anything to save.
+- **Vercel Blob** for video uploads: in Vercel → **Storage** → **Create** → **Blob**, connect it to this project, then redeploy. It adds `BLOB_READ_WRITE_TOKEN`. Without it you can still paste video links from any host.
+
+Lesson videos for chapters a member's roles don't unlock are never sent to their browser. Uploaded videos live at long random addresses, so they're hard to guess, but anyone who has a link can play it. For stronger protection later, move videos to a host with signed, expiring links (Mux, Cloudflare Stream, Bunny Stream).
 
 ## Chrome only and lockdown
 

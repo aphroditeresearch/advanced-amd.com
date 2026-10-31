@@ -3,7 +3,7 @@
 // so giving or removing a role in Discord shows up on the site without signing out.
 const {
   readSession, writeSession, clearCookie, SESSION_COOKIE, ROLE_REFRESH_MS,
-  env, discord, profileFrom, loadProgress, json,
+  env, discord, profileFrom, loadProgress, json, isAdmin, recordMember,
 } = require('./_lib');
 
 module.exports = async (req, res) => {
@@ -27,6 +27,7 @@ module.exports = async (req, res) => {
       s.roles = member.data.roles || [];
       s.rolesAt = Date.now();
       cookies.push(writeSession(res, s));
+      try { await recordMember(s.user, s.roles); } catch (e) {}
     }
     // any other Discord hiccup: keep the last known roles and try again next time
   }
@@ -34,5 +35,5 @@ module.exports = async (req, res) => {
   let progress = {};
   try { progress = await loadProgress(s.user.id); } catch (e) { progress = {}; }
 
-  json(res, 200, { user: s.user, roles: s.roles, progress }, cookies);
+  json(res, 200, { user: s.user, roles: s.roles, progress, isAdmin: isAdmin(s) }, cookies);
 };

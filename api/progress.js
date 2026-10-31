@@ -3,7 +3,7 @@
 // Needs a Redis store (Upstash / Vercel KV). Without one, progress stays in each member's browser.
 const { readSession, kvConfigured, loadProgress, saveProgress, json } = require('./_lib');
 
-const KEY = /^(ch\d+-\d+|hw:[\w-]{1,64}|bd:[\w-]{1,64})$/;
+const KEY = /^(ch[\w]{1,24}-[\w]{1,40}|hw:[\w-]{1,64}|bd:[\w-]{1,64})$/;
 
 module.exports = async (req, res) => {
   const s = readSession(req);
