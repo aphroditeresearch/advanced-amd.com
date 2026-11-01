@@ -7,7 +7,17 @@ const { readSession, isAdmin, json } = require('../_lib');
 const MAX_BYTES = 5 * 1024 * 1024 * 1024; // 5 GB per file
 
 module.exports = async (req, res) => {
-  if (req.method !== 'POST') { res.setHeader('Allow', 'POST'); return json(res, 405, { error: 'method' }); }
+  // GET: quick health check the admin panel runs before each upload
+  if (req.method === 'GET') {
+    const s = readSession(req);
+    if (!s) return json(res, 401, { ready: false, reason: 'Sign in again, your session ended.' });
+    if (!isAdmin(s)) return json(res, 403, { ready: false, reason: 'Only admins can upload.' });
+    const t = process.env.BLOB_READ_WRITE_TOKEN || '';
+    if (!t) return json(res, 200, { ready: false, reason: 'No Blob store is connected. In Vercel: Storage → Blob → connect it to this project, then redeploy.' });
+    if (!/^vercel_blob_rw_[^_]+_.+/.test(t)) return json(res, 200, { ready: false, reason: 'BLOB_READ_WRITE_TOKEN looks wrong. Reconnect the Blob store in Vercel Storage, then redeploy.' });
+    return json(res, 200, { ready: true, store: t.split('_')[3] });
+  }
+  if (req.method !== 'POST') { res.setHeader('Allow', 'GET, POST'); return json(res, 405, { error: 'method' }); }
   if (!process.env.BLOB_READ_WRITE_TOKEN) return json(res, 503, { error: 'no_blob_store' });
 
   let body = req.body;
@@ -37,6 +47,7 @@ module.exports = async (req, res) => {
     });
     json(res, 200, result);
   } catch (e) {
+    console.error('upload token error:', e);   // shows in Vercel → Logs
     json(res, 400, { error: String((e && e.message) || e) });
   }
 };

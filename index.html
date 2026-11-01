@@ -405,6 +405,7 @@ img,video{-webkit-user-drag:none;user-drag:none}
 .vid input{flex:1;min-width:0}
 .vid .up{flex:none;position:relative;overflow:hidden;display:inline-flex;align-items:center;padding:0 14px;min-height:42px;border:1px solid var(--blue);color:var(--kana-c);cursor:pointer;font:600 13px var(--sans);white-space:nowrap}
 .vid .up input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.uperr{display:block;margin-top:6px;color:#FF9A9A;font-size:13px;line-height:1.4;overflow-wrap:anywhere;-webkit-user-select:text;user-select:text}
 .upbar{height:3px;background:var(--line);overflow:hidden}
 .upbar i{display:block;height:100%;width:0;background:var(--blue);transition:width .2s linear}
 .adm-acts{display:flex;flex-wrap:wrap;gap:10px}
@@ -1166,11 +1167,15 @@ img,video{-webkit-user-drag:none;user-drag:none}
     inp.addEventListener('input', function(){ onChange(inp.value.trim()); });
     var up = el('label','up','Upload'); var file = el('input'); file.type='file'; file.accept='video/mp4,video/quicktime,video/webm,video/x-m4v'; up.appendChild(file);
     var bar = el('div','upbar'), fill = el('i'); bar.appendChild(fill); bar.hidden = true;
+    var err = el('small','uperr'); err.hidden = true; err.setAttribute('role','alert');
     file.addEventListener('change', function(){
       var f = file.files && file.files[0]; if (!f) return;
       if (DEMO_MODE){ toast('Uploads work on the live site once Vercel Blob is connected.'); file.value=''; return; }
-      bar.hidden = false; fill.style.width = '2%'; up.firstChild.nodeValue = 'Uploading…';
-      loadBlob().then(function(B){
+      bar.hidden = false; fill.style.width = '2%'; up.firstChild.nodeValue = 'Checking…'; err.hidden = true;
+      fetch('/api/admin/upload', { credentials:'same-origin' })
+        .then(function(r){ return r.json().catch(function(){ return { ready:false, reason:'Upload route answered ' + r.status + '. Check Vercel → Logs.' }; }); })
+        .then(function(st){ if (!st.ready) throw new Error(st.reason || 'Uploads aren\'t ready.'); up.firstChild.nodeValue = 'Uploading…'; return loadBlob(); })
+        .then(function(B){
         var safe = f.name.replace(/[^\w.\-]+/g,'-').slice(-80);
         return B.upload(folder + '/' + safe, f, { access:'public', handleUploadUrl:'/api/admin/upload', contentType: f.type || 'video/mp4',
           multipart: f.size > 100 * 1024 * 1024, onUploadProgress: function(e){ fill.style.width = Math.max(2, e.percentage || 0) + '%'; } });
@@ -1179,11 +1184,14 @@ img,video{-webkit-user-drag:none;user-drag:none}
         toast('Uploaded. Remember to save.'); setTimeout(function(){ bar.hidden = true; }, 1200);
       }).catch(function(e){
         bar.hidden = true; up.firstChild.nodeValue = 'Upload';
-        toast(/no_blob_store|503/.test(String(e && e.message)) ? 'Connect Vercel Blob storage in Vercel to upload videos.' : 'Upload failed. Try again.');
+        var msg = String((e && e.message) || e || 'Unknown error').replace(/^Vercel Blob:\s*/,'');
+        err.textContent = 'Upload failed: ' + msg + ' (' + f.name + ', ' + (f.type || 'no type') + ', ' + Math.round(f.size/1048576) + ' MB)';
+        err.hidden = false; toast('Upload failed. The reason is shown under the video box.');
+        if (window.console) console.error('Upload failed', e);
       });
       file.value = '';
     });
-    row.appendChild(inp); row.appendChild(up); wrap.appendChild(row); wrap.appendChild(bar);
+    row.appendChild(inp); row.appendChild(up); wrap.appendChild(row); wrap.appendChild(bar); wrap.appendChild(err);
     return wrap;
   }
 
