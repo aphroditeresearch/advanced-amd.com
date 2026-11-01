@@ -332,6 +332,8 @@ a{color:var(--blue);text-underline-offset:3px}
 .play{position:relative;z-index:2;width:78px;height:78px;border-radius:50%;border:2px solid #BFD8FF;display:grid;place-items:center;color:#fff;background:color-mix(in srgb,var(--blue) 35%,transparent);box-shadow:0 0 30px color-mix(in srgb,var(--blue) 60%,transparent)}
 .player .note{position:absolute;z-index:2;left:18px;bottom:14px;font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
 .player video ~ .note{top:14px;bottom:auto;padding:4px 8px;background:rgba(3,5,10,.7)}
+.perr{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:24px;text-align:center;background:rgba(3,5,10,.92);color:var(--muted);font-size:15px}
+.perr b{color:var(--ink);font-size:18px}
 .pane p.sum{margin:0;color:var(--muted);max-width:70ch}
 .pacts{display:flex;flex-wrap:wrap;gap:12px}
 .pbtn{appearance:none;cursor:pointer;min-height:48px;padding:0 20px;font:600 15px var(--sans);border:2px solid var(--ink);background:transparent;color:var(--ink);text-decoration:none;display:inline-flex;align-items:center;gap:10px}
@@ -989,6 +991,15 @@ img,video{-webkit-user-drag:none;user-drag:none}
           renderTrack(id); renderCompletions();
         }
       });
+      v.addEventListener('error', function(){
+        var code = v.error ? v.error.code : 0, msg;
+        if (code === 4) msg = 'This video can\'t play in Chrome. It\'s likely an HEVC/H.265 file: re-export it as an H.264 MP4 and upload it again.';
+        else if (code === 2) msg = 'The video couldn\'t load. Check your connection and refresh the page.';
+        else if (code === 3) msg = 'The video file looks damaged. Re-export and upload it again.';
+        else msg = 'The video couldn\'t be loaded.';
+        var box = el('div','perr'); box.setAttribute('role','alert'); box.appendChild(el('b',null,'Video unavailable')); box.appendChild(el('span',null,msg));
+        pl.appendChild(box);
+      });
       pl.appendChild(v);
       if (DEMO_MODE && !cur.video) pl.appendChild(el('span','note','Sample video'));
     } else { var pb = el('div','play'); pb.innerHTML = playSvg; pl.appendChild(pb); pl.appendChild(el('span','note','Video coming soon')); }
@@ -1179,8 +1190,10 @@ img,video{-webkit-user-drag:none;user-drag:none}
         .then(function(B){
         var safe = f.name.replace(/[^\w.\-]+/g,'-').slice(-80);
         var send = upMode === 'presigned' ? B.uploadPresigned : B.upload;
-        return send(folder + '/' + safe, f, { access:'public', handleUploadUrl:'/api/admin/upload', contentType: f.type || 'video/mp4',
-          multipart: f.size > 100 * 1024 * 1024, onUploadProgress: function(e){ fill.style.width = Math.max(2, e.percentage || 0) + '%'; } });
+        var go = function(access){ return send(folder + '/' + safe, f, { access: access, handleUploadUrl:'/api/admin/upload', contentType: f.type || 'video/mp4',
+          multipart: f.size > 100 * 1024 * 1024, onUploadProgress: function(e){ fill.style.width = Math.max(2, e.percentage || 0) + '%'; } }); };
+        // public stores take public uploads; private stores need private ones
+        return go('public').catch(function(e){ if (/private|access/i.test(String(e && e.message))) return go('private'); throw e; });
       }).then(function(r){
         inp.value = r.url; onChange(r.url); fill.style.width = '100%'; up.firstChild.nodeValue = 'Upload';
         toast('Uploaded. Remember to save.'); setTimeout(function(){ bar.hidden = true; }, 1200);
