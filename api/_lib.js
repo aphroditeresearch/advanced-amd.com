@@ -110,6 +110,7 @@ function profileFrom(user, member, guildId) {
     avatar: avatarUrl(user, member, guildId),
     banner: bannerUrl(user),
     joinedAt: (member && member.joined_at) || null,
+    email: (user.email && user.verified !== false) ? user.email : null,
   };
 }
 
@@ -143,6 +144,13 @@ async function saveProgress(userId, key, completedAt) {
   return true;
 }
 
+/* ---------- client IP (first address Vercel's proxy forwarded) ---------- */
+function clientIp(req) {
+  const h = req.headers || {};
+  const fwd = String(h['x-forwarded-for'] || h['x-real-ip'] || h['x-vercel-forwarded-for'] || '').split(',')[0].trim();
+  return /^[0-9a-fA-F:.]{3,45}$/.test(fwd) ? fwd : null;
+}
+
 /* ---------- admins + members ---------- */
 // Discord user IDs allowed into the admin panel (comma-separated in ADMIN_DISCORD_IDS).
 function adminIds() {
@@ -161,6 +169,14 @@ async function listMembers() {
   const flat = await kv(['HGETALL', 'members']);
   const out = [];
   if (Array.isArray(flat)) for (let i = 0; i < flat.length; i += 2) { try { out.push(JSON.parse(flat[i + 1])); } catch (e) {} }
+  return out;
+}
+
+async function loadFlags(userId) {
+  if (!kvConfigured()) return {};
+  const flat = await kv(['HGETALL', 'flags:' + userId]);
+  const out = {};
+  if (Array.isArray(flat)) for (let i = 0; i < flat.length; i += 2) out[flat[i]] = flat[i + 1];
   return out;
 }
 
@@ -199,5 +215,5 @@ module.exports = {
   DISCORD_API, SESSION_COOKIE, STATE_COOKIE, ROLE_REFRESH_MS, SESSION_DAYS,
   env, parseCookies, cookie, clearCookie, sign, verify, readSession, writeSession,
   redirectUri, discord, profileFrom, kvConfigured, kv, loadProgress, saveProgress, redirect, json,
-  adminIds, isAdmin, recordMember, listMembers, CHAPTER_ROLES, loadContent, saveContent,
+  adminIds, isAdmin, recordMember, listMembers, CHAPTER_ROLES, loadContent, saveContent, clientIp, loadFlags,
 };

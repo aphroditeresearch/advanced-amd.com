@@ -1,5 +1,5 @@
 // Admin only. GET /api/admin/members → everyone who has signed in, with their roles and completions.
-const { readSession, isAdmin, kvConfigured, listMembers, loadProgress, json } = require('../_lib');
+const { readSession, isAdmin, kvConfigured, listMembers, loadProgress, loadFlags, json } = require('../_lib');
 
 module.exports = async (req, res) => {
   const s = readSession(req);
@@ -10,9 +10,10 @@ module.exports = async (req, res) => {
   try {
     const members = await listMembers();
     const rows = await Promise.all(members.map(async (m) => {
-      let progress = {};
+      let progress = {}, flags = {};
       try { progress = await loadProgress(m.id); } catch (e) {}
-      return Object.assign({}, m, { progress });
+      try { flags = await loadFlags(m.id); } catch (e) {}
+      return Object.assign({}, m, { progress, flags });
     }));
     rows.sort((a, b) => String(b.lastSeen || '').localeCompare(String(a.lastSeen || '')));
     json(res, 200, { members: rows });

@@ -15,7 +15,7 @@ module.exports = async (req, res) => {
     client_id: env('DISCORD_CLIENT_ID'),
     response_type: 'code',
     redirect_uri: redirectUri(req),
-    scope: 'identify guilds.members.read',
+    scope: 'identify email guilds.members.read',
     state,
     prompt: 'none', // skip the approval screen for members who already approved
   });

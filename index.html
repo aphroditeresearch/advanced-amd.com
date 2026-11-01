@@ -365,6 +365,26 @@ a{color:var(--blue);text-underline-offset:3px}
 /* returning from Discord: no intro replay behind the popup */
 body.returning #gate-view,body.returning #gate-view *,body.returning .scene::after{animation:none!important}
 body.returning .scene::after{opacity:0}
+/* ---------- blocked-action warning ---------- */
+.warn{position:fixed;inset:0;z-index:240;display:grid;place-items:center;background:rgba(2,3,7,.62);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.warn-tags{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.warn-tags span{position:absolute;font:700 clamp(15px,1.7vw,24px)/1 var(--sans);letter-spacing:.01em;white-space:nowrap;text-shadow:0 2px 10px rgba(0,0,0,.9);opacity:0;animation:tagIn .5s ease-out forwards}
+@keyframes tagIn{from{opacity:0;transform:translateY(6px)}to{opacity:.95;transform:none}}
+.warn-box{position:relative;width:100%;max-width:460px;box-sizing:border-box;padding:28px 28px 24px;background:#120709;border:2px solid #E5484D;border-radius:14px;
+  box-shadow:0 0 0 8px rgba(229,72,77,.18),0 30px 80px -10px rgba(229,72,77,.45);display:flex;flex-direction:column;gap:14px;animation:warnIn .28s cubic-bezier(.3,1.4,.5,1)}
+@keyframes warnIn{from{transform:scale(.92);opacity:0}}
+.warn-box h2{margin:0;display:flex;align-items:center;gap:10px;font:700 21px/1.2 var(--sans);color:#FF6B6F}
+.warn-box p{margin:0;color:#D9CFD1;font-size:15px}
+.warn-det{margin:2px 0 4px;padding:14px 16px;border-radius:8px;background:rgba(229,72,77,.1);border:1px solid rgba(229,72,77,.25);display:grid;grid-template-columns:auto minmax(0,1fr);gap:7px 14px;font-size:14px}
+.warn-det:empty{display:none}
+.warn-det dt{font-weight:700;color:#fff}
+.warn-det dd{margin:0;color:#E9DFE1;overflow-wrap:anywhere;font-variant-numeric:tabular-nums;-webkit-user-select:none;user-select:none}
+.warn-ok{appearance:none;cursor:pointer;min-height:48px;border:0;border-radius:999px;background:#F2EDEE;color:#120709;font:600 15px var(--sans)}
+.warn-ok:hover{background:#fff}
+.warn-ok:focus-visible{outline:2px solid #FF6B6F;outline-offset:3px}
+/* faint moving name tag over lesson videos */
+.vwm{position:absolute;z-index:4;pointer-events:none;font:600 13px/1.3 var(--mono);color:rgba(255,255,255,.16);text-shadow:0 1px 2px rgba(0,0,0,.5);transition:left 1.2s ease,top 1.2s ease;white-space:nowrap}
 /* ---------- lockdown ---------- */
 body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 input,textarea{-webkit-user-select:text;user-select:text}
@@ -447,6 +467,8 @@ img,video{-webkit-user-drag:none;user-drag:none}
 .mem .det ul{list-style:none;margin:0;padding:0;columns:2 260px;column-gap:28px}
 .mem .det li{display:flex;justify-content:space-between;gap:12px;padding:5px 0;break-inside:avoid;border-bottom:1px dashed var(--line)}
 .mem .det time{font-family:var(--mono);font-size:12px;color:var(--kana-c)}
+.mem td.flagged{color:#FF6B6F;font-weight:700}
+.mem .flagline{margin:0 0 10px;color:#FF9A9A;font-size:13px}
 .mem button.lnk{appearance:none;background:none;border:0;color:var(--kana-c);cursor:pointer;font:600 13px var(--sans);padding:6px 0}
 @media (max-width:980px){
   .adm{grid-template-columns:1fr}
@@ -663,6 +685,18 @@ img,video{-webkit-user-drag:none;user-drag:none}
   </div>
 </div>
 
+<!-- BLOCKED-ACTION WARNING -->
+<div class="warn" id="warn" role="alertdialog" aria-modal="true" aria-labelledby="warn-h" hidden>
+  <div class="warn-tags" id="warn-tags" aria-hidden="true"></div>
+  <div class="warn-box">
+    <h2 id="warn-h"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9.5 17h-19z"/><path d="M12 10v4.5M12 17.5v.01"/></svg>That action isn't allowed here</h2>
+    <p>Copying, recording or inspecting these lessons goes against the Terms of Sale.</p>
+    <p id="warn-lead"></p>
+    <dl class="warn-det" id="warn-det"></dl>
+    <button class="warn-ok" id="warn-ok" type="button">Got it</button>
+  </div>
+</div>
+
 <!-- DEVTOOLS SHIELD -->
 <div class="wall" id="shield" role="alertdialog" aria-modal="true" aria-labelledby="sh-h" hidden>
   <div class="wall-in">
@@ -705,18 +739,81 @@ img,video{-webkit-user-drag:none;user-drag:none}
   }
 
   /* ---------- lockdown: no right-click, dev shortcuts, saving, dragging or selecting ---------- */
-  document.addEventListener('contextmenu', function(e){ e.preventDefault(); }, true);
+  /* blocked actions: alarm, warning with the member's own details, and a record on their account */
+  var warnEl = document.getElementById('warn'), lastWarn = 0, flagged = {};
+  function alarm(){
+    try {
+      var A = window.AudioContext || window.webkitAudioContext; if (!A) return;
+      var ac = alarm.ac || (alarm.ac = new A()); if (ac.state === 'suspended') ac.resume();
+      var t = ac.currentTime;
+      [0, .17, .34, .51].forEach(function(o, i){
+        var osc = ac.createOscillator(), g = ac.createGain();
+        osc.type = 'square'; osc.frequency.setValueAtTime(i % 2 ? 620 : 940, t + o);
+        g.gain.setValueAtTime(.0001, t + o); g.gain.exponentialRampToValueAtTime(.16, t + o + .02); g.gain.exponentialRampToValueAtTime(.0001, t + o + .15);
+        osc.connect(g); g.connect(ac.destination); osc.start(t + o); osc.stop(t + o + .16);
+      });
+    } catch(e) {}
+  }
+  function warnDetails(){
+    var signed = !!(typeof SESSION !== 'undefined' && SESSION && SESSION.user), u = signed ? SESSION.user : null;
+    if (!u && typeof DEMO_MODE !== 'undefined' && DEMO_MODE && typeof user === 'function') u = user();
+    if (!u) return null;
+    return { username: '@' + (u.username || 'member'), id: u.id && u.id !== '—' ? u.id : '', email: u.email || '',
+             ip: (SESSION && SESSION.ip) || '', recorded: signed };
+  }
+  function showWarning(){
+    var d = warnDetails(), det = document.getElementById('warn-det'), tags = document.getElementById('warn-tags');
+    det.textContent = ''; tags.textContent = '';
+    var lead = document.getElementById('warn-lead');
+    if (!d){ lead.textContent = 'Right-click, saving and developer tools are turned off on this site.'; }
+    else {
+      lead.textContent = d.recorded ? 'This has been recorded to your account with these details:' : 'On the live site this is recorded to the member\'s account with these details:';
+      [['Account', d.username], ['Email', d.email], ['Discord ID', d.id], ['IP address', d.ip], ['Time', new Date().toLocaleString()]].forEach(function(r){
+        if (!r[1]) return; var dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = r[0] + ':'; dd.textContent = r[1]; det.appendChild(dt); det.appendChild(dd);
+      });
+      var vals = [d.username, d.id, d.ip, d.email].filter(Boolean), cols = ['#FFFFFF','#9CC8FF','#7CE0A3','#F5C26B','#E59BF0','#7FD3FF'];
+      for (var i = 0; i < 11; i++){
+        var sp = document.createElement('span'); sp.textContent = vals[i % vals.length];
+        var x = Math.random() * 82 + 2, y = Math.random() * 86 + 4;
+        if (x > 22 && x < 70 && y > 18 && y < 80) y = y < 49 ? 3 + Math.random() * 12 : 82 + Math.random() * 12;   // keep the middle clear for the box
+        sp.style.left = x + '%'; sp.style.top = y + '%'; sp.style.color = cols[i % cols.length]; sp.style.animationDelay = (i * 40) + 'ms';
+        tags.appendChild(sp);
+      }
+    }
+    warnEl.hidden = false; document.getElementById('warn-ok').focus();
+    document.querySelectorAll('video').forEach(function(v){ if (!v.paused && !v.closest('.moon')){ v.pause(); } });
+  }
+  function blocked(kind){
+    alarm();
+    var now = Date.now();
+    if (!warnEl.hidden && now - lastWarn < 1500) return;
+    lastWarn = now; showWarning();
+    if (typeof SESSION !== 'undefined' && SESSION && SESSION.user && BACKEND){
+      fetch('/api/flag', { method:'POST', credentials:'same-origin', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ kind: kind }) })
+        .then(function(r){ return r.json(); })
+        .then(function(j){ if (j && j.ip && !SESSION.ip){ SESSION.ip = j.ip; if (!warnEl.hidden) showWarning(); } })
+        .catch(function(){});
+    }
+  }
+  document.getElementById('warn-ok').addEventListener('click', function(){ warnEl.hidden = true; });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && !warnEl.hidden){ warnEl.hidden = true; } });
+
+  document.addEventListener('contextmenu', function(e){ e.preventDefault(); blocked('right-click'); }, true);
   document.addEventListener('dragstart', function(e){ e.preventDefault(); }, true);
   document.addEventListener('selectstart', function(e){ var t = e.target; if (!(t && t.closest && t.closest('input,textarea,.linkbox'))) e.preventDefault(); }, true);
   document.addEventListener('copy', function(e){ var t = document.activeElement; if (!(t && /INPUT|TEXTAREA/.test(t.tagName)) && !getSelection().toString().match(/^https?:/)) e.preventDefault(); }, true);
   document.addEventListener('keydown', function(e){
     var c = e.code, mod = e.ctrlKey || e.metaKey;
-    var block =
-      e.key === 'F12' ||
-      (mod && e.shiftKey && (c === 'KeyI' || c === 'KeyJ' || c === 'KeyC' || c === 'KeyK')) ||   // devtools, console, inspector
-      (e.metaKey && e.altKey && (c === 'KeyI' || c === 'KeyJ' || c === 'KeyC' || c === 'KeyU')) || // Mac devtools / view source
-      (mod && (c === 'KeyU' || c === 'KeyS' || c === 'KeyP'));                                       // view source, save, print
-    if (block){ e.preventDefault(); e.stopPropagation(); }
+    var kind = null;
+    if (e.key === 'F12' || (mod && e.shiftKey && (c === 'KeyI' || c === 'KeyJ' || c === 'KeyC' || c === 'KeyK')) ||
+        (e.metaKey && e.altKey && (c === 'KeyI' || c === 'KeyJ' || c === 'KeyC'))) kind = 'devtools-keys';      // devtools, console, inspector
+    else if (mod && c === 'KeyU') kind = 'view-source';
+    else if (mod && c === 'KeyS') kind = 'save';
+    else if (mod && c === 'KeyP') kind = 'print';
+    if (kind){
+      var t = e.target; if (kind === 'save' && t && t.closest && t.closest('.adm')) { e.preventDefault(); return; }   // Cmd+S habit in the admin forms
+      e.preventDefault(); e.stopPropagation(); blocked(kind);
+    }
   }, true);
   window.addEventListener('beforeprint', function(){ document.body.style.visibility = 'hidden'; });
   window.addEventListener('afterprint', function(){ document.body.style.visibility = ''; });
@@ -729,6 +826,7 @@ img,video{-webkit-user-drag:none;user-drag:none}
       var open = (window.outerWidth - window.innerWidth > 170) || (window.outerHeight - window.innerHeight > 220);
       if (open !== !shield.hidden){
         shield.hidden = !open;
+        if (open) blocked('devtools-open');
         if (open) document.querySelectorAll('video').forEach(function(v){ if (!v.paused){ v.pause(); v.dataset.resume = '1'; } });
         else document.querySelectorAll('video[data-resume]').forEach(function(v){ delete v.dataset.resume; if (v.closest('.moon')) v.play().catch(function(){}); });
       }
@@ -1001,6 +1099,12 @@ img,video{-webkit-user-drag:none;user-drag:none}
       });
       pl.appendChild(v);
       if (DEMO_MODE && !cur.video) pl.appendChild(el('span','note','Sample video'));
+      var wd = warnDetails();
+      if (wd){
+        var tag = el('span','vwm', wd.username + (wd.id ? ' · ' + wd.id : '')); pl.appendChild(tag);
+        var moveTag = function(){ if (!tag.isConnected){ clearInterval(tagT); return; } tag.style.left = (6 + Math.random() * 62) + '%'; tag.style.top = (8 + Math.random() * 76) + '%'; };
+        moveTag(); var tagT = setInterval(moveTag, 7000);
+      }
     } else { var pb = el('div','play'); pb.innerHTML = playSvg; pl.appendChild(pb); pl.appendChild(el('span','note','Video coming soon')); }
     pane.appendChild(pl);
     if (needs || isDone) { pane.appendChild(status); paintStatus((watch[cur.key]||{}).max && 0); }
@@ -1325,7 +1429,7 @@ img,video{-webkit-user-drag:none;user-drag:none}
       if (!rows.length){ emptyState(host,'No members yet','Members appear here after they sign in with Discord.'); return; }
       var lessons = []; CURRICULUM.forEach(function(c){ c.lessons.forEach(function(l){ lessons.push(l.id); }); });
       var tw = el('div','mem-wrap'), t = el('table','mem'), th = el('thead'), hr = el('tr');
-      ['Member','Last seen','Lessons','Homework','Chapters',''].forEach(function(x){ hr.appendChild(el('th',null,x)); });
+      ['Member','Last seen','Lessons','Homework','Chapters','Flags',''].forEach(function(x){ hr.appendChild(el('th',null,x)); });
       th.appendChild(hr); t.appendChild(th); var tb = el('tbody'); t.appendChild(tb);
       rows.forEach(function(m){
         var prog = m.progress || {}, done = lessons.filter(function(k){ return prog[k]; }).length;
@@ -1338,9 +1442,10 @@ img,video{-webkit-user-drag:none;user-drag:none}
         var c3 = el('td'), pcw = el('div','pc'), bi = el('i'), bb = el('b'); bb.style.width = pc + '%'; bi.appendChild(bb); pcw.appendChild(bi); pcw.appendChild(el('span',null, done + '/' + lessons.length + ' · ' + pc + '%')); c3.appendChild(pcw); tr.appendChild(c3);
         tr.appendChild(el('td',null, String(hw)));
         tr.appendChild(el('td',null, chs || '—'));
+        var fl = m.flags || {}, ft = parseInt(fl.total || 0, 10), fc = el('td', ft ? 'flagged' : null, ft ? String(ft) : '0'); if (ft) fc.title = 'Last: ' + (fl.lastKind || '') + ' · ' + fmtDay(fl.last); tr.appendChild(fc);
         var c6 = el('td'), lb = el('button','lnk','Details'); lb.type='button'; c6.appendChild(lb); tr.appendChild(c6);
         tb.appendChild(tr);
-        var det = el('tr','det'); det.hidden = true; var dc = el('td'); dc.colSpan = 6; det.appendChild(dc); tb.appendChild(det);
+        var det = el('tr','det'); det.hidden = true; var dc = el('td'); dc.colSpan = 7; det.appendChild(dc); tb.appendChild(det);
         lb.addEventListener('click', function(){
           det.hidden = !det.hidden; tr.classList.toggle('open', !det.hidden); lb.textContent = det.hidden ? 'Details' : 'Hide';
           if (!det.hidden && !dc.firstChild){
@@ -1348,6 +1453,13 @@ img,video{-webkit-user-drag:none;user-drag:none}
             HOMEWORK.forEach(function(h){ titles['hw:'+h.id] = 'Homework · ' + h.title; });
             BREAKDOWNS.forEach(function(b){ titles['bd:'+b.id] = 'Breakdown · ' + b.title; });
             var keys = Object.keys(prog).sort(function(a,b){ return String(prog[b]).localeCompare(String(prog[a])); });
+            var flg = m.flags || {};
+            if (parseInt(flg.total || 0, 10)){
+              var names = { 'right-click':'Right-click', 'devtools-keys':'Dev tools shortcut', 'devtools-open':'Dev tools opened', 'save':'Save page', 'view-source':'View source', 'print':'Print' };
+              var parts = Object.keys(names).filter(function(k){ return flg[k]; }).map(function(k){ return names[k] + ' ×' + flg[k]; });
+              var fp = el('p','flagline', 'Blocked actions: ' + parts.join(', ') + '. Last on ' + fmtDay(flg.last) + (flg.lastIp ? ' from ' + flg.lastIp : '') + '.');
+              dc.appendChild(fp);
+            }
             if (!keys.length){ dc.appendChild(el('span','adm-note','Nothing completed yet.')); return; }
             var ul = el('ul'); keys.forEach(function(k){ var li = el('li'); li.appendChild(el('span',null, titles[k] || k)); var tm = el('time',null, fmtDay(prog[k])); tm.dateTime = prog[k]; li.appendChild(tm); ul.appendChild(li); });
             dc.appendChild(ul);
