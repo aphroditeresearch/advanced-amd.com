@@ -488,8 +488,7 @@ img,video{-webkit-user-drag:none;user-drag:none}
       <h2 id="signin-title">Sign in</h2>
       <p>Use the Discord account that holds your member role.</p>
       <button class="cta" id="discord-btn" type="button">Continue with Discord</button>
-      <p class="fine">Lessons play in Google Chrome on your computer or phone.<br><a href="#terms">Terms of sale</a> · <a href="#privacy">Privacy policy</a></p>
-      <span class="demo">Demo build · sample data, no real sign-in</span>
+      <p class="fine">Lessons play in Google Chrome on your computer or phone.<br><a href="terms.html">Terms of sale</a> · <a href="privacy.html">Privacy policy</a></p>
     </section>
   </main>
 
@@ -1477,7 +1476,6 @@ img,video{-webkit-user-drag:none;user-drag:none}
     document.getElementById('admin-tab').hidden = !canAdmin();
     var btn = document.getElementById('discord-btn');
     if (SESSION){ btn.textContent = 'Continue as ' + (user().displayName || user().username); }
-    document.querySelectorAll('.card .demo').forEach(function(n){ n.hidden = BACKEND; });
     // sign-in problems sent back from Discord
     var errMatch = location.search.match(/[?&]error=([a-z_]+)/);
     if (errMatch){
